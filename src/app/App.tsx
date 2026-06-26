@@ -34,6 +34,8 @@ import img5 from "../imports/IMG-20260616-WA0010.jpg";
 import img6 from "../imports/IMG-20260616-WA0011.jpg";
 import gabitoLogo from "../imports/gabito-logo.png";
 import whatsappIcon from "../imports/whatsapp-icon.png";
+import img7 from "../imports/IMG-20260623-WA0009.jpg";
+import img8 from "../imports/IMG-20260623-WA0011.jpg";
 
 type Page =
   | "home"
@@ -45,7 +47,7 @@ type Page =
   | "contact"
   | "quote";
 
-const WA = "2348089100386";
+const WA = "2348109946212";
 const PHONE1 = "+2348089100386";
 const PHONE2 = "+2348109946212";
 const ADDRESS = "140 Old Onitsha Road, Nnewi, Beside Nenco Filling Station";
@@ -403,7 +405,7 @@ function HomePage({ nav }: { nav: (p: Page) => void }) {
       desc: "2× AllsparkPower lithium batteries + Firman 5kVA hybrid inverter for a family home.",
     },
     {
-      img: img2,
+      img: img7,
       title: "Commercial Solar Setup",
       location: "Awka, Anambra",
       type: "Commercial",
@@ -428,19 +430,19 @@ function HomePage({ nav }: { nav: (p: Page) => void }) {
   const homeFaqs = [
     {
       q: "How much does solar installation cost in Nigeria?",
-      a: "Costs vary by system size. A basic home backup starts from ₦500,000, while full home solar systems (3–5kVA with lithium batteries) range from ₦800,000–₦5,000,000. We offer free site visits to give you an accurate quote.",
+      a: "Our 3kVA solar system costs approximately ₦1.5 million, while the 8kVA solar system is around ₦6.2 million. The final price depends on the specific system size and features you need. We offer free site visits to provide an accurate quote tailored to your requirements.",
     },
     {
       q: "Can solar power my entire house?",
-      a: "Yes — if the system is properly sized. After a free energy audit, we design a system that covers all your appliances reliably, including TVs, fans, fridges, and ACs.",
+      a: "Yes, with the right system size. For example, our 8kVA system can support multiple appliances including refrigerators, TVs, and ACs, making it suitable to power your entire home reliably after a free energy assessment.",
     },
     {
       q: "How long do solar batteries last?",
-      a: "Our LiFePO4 lithium batteries are rated for 3,000–6,000 charge cycles, typically lasting 8–15 years — far longer than standard lead-acid alternatives.",
+      a: "Our systems come with batteries that have a lifespan of approximately 10–15 years, depending on usage and maintenance, with the 8kVA system offering up to 15 years of reliable backup.",
     },
     {
       q: "Do you install nationwide?",
-      a: "Yes. While we're based in Nnewi, we install across Anambra, Delta, Imo, Enugu, and every other states in Nigeria. Contact us to discuss your location.",
+      a: "Yes. While based in Nnewi, we install across Nigeria, including Anambra, Delta, Imo, Enugu, and other states. Contact us to discuss your location and project specifics.",
     },
   ];
 
@@ -913,12 +915,12 @@ function ProjectsPage({ nav }: { nav: (p: Page) => void }) {
       outcome: "Full home power for 12+ hours per charge cycle.",
     },
     {
-      img: img2,
-      title: "Cworth Energy Commercial Array",
+      img: img8,
+      title: "LuxpowerTex",
       location: "Awka, Anambra",
       type: "commercial",
       challenge: "Business losing revenue from constant power interruptions.",
-      solution: "Multiple Cworth Energy inverters with large battery bank.",
+      solution: "Multiple inverters with large battery bank.",
       outcome: "Uninterrupted operations from 8am to 10pm daily.",
     },
     {
@@ -955,13 +957,13 @@ function ProjectsPage({ nav }: { nav: (p: Page) => void }) {
     },
     {
       img: img6,
-      title: "LytopSun LiFePO4 Power Wall",
+      title: "LvtopSun LiFePO4 Power Wall",
       location: "Nnewi, Anambra",
       type: "residential",
       challenge:
         "Customer wanted premium lithium technology with full solar integration.",
       solution:
-        "Felicity Solar inverter + LytopSun 51.2V 300Ah LiFePO4 power wall.",
+        "Felicity Solar inverter + LvtopSun 51.2V 300Ah LiFePO4 power wall.",
       outcome:
         "Over 15kWh of clean storage — enough for 24-hour energy independence.",
     },
