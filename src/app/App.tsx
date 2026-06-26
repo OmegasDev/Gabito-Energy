@@ -409,7 +409,7 @@ function HomePage({ nav }: { nav: (p: Page) => void }) {
       title: "Commercial Solar Setup",
       location: "Awka, Anambra",
       type: "Commercial",
-      desc: "Multiple Cworth Energy inverters and large battery bank for a commercial building.",
+      desc: "Multiple LuxpowerTex Energy inverters and large battery bank for a commercial building.",
     },
     {
       img: img3,
