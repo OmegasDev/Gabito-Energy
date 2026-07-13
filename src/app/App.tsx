@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "motion/react";
+import { AdminApp } from "@/app/admin/AdminApp";
+import { getHomepageProjects, getPublicProjects, type Project as AdminProject } from "./admin/store";
 import {
   Sun,
   Battery,
@@ -23,6 +25,7 @@ import {
   Home,
   Building2,
   LogOut,
+  Lock,
 } from "lucide-react";
 import { ImageWithFallback } from "@/app/components/figma/ImageWithFallback";
 
@@ -45,7 +48,8 @@ type Page =
   | "about"
   | "faq"
   | "contact"
-  | "quote";
+  | "quote"
+  | "admin";
 
 const WA = "2348109946212";
 const PHONE1 = "+2348089100386";
@@ -101,6 +105,11 @@ function Header({ page, nav }: { page: Page; nav: (p: Page) => void }) {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
 
+  const goAdmin = () => {
+    window.location.hash = "admin";
+    setOpen(false);
+  };
+
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 56);
     window.addEventListener("scroll", fn);
@@ -120,6 +129,8 @@ function Header({ page, nav }: { page: Page; nav: (p: Page) => void }) {
     { label: "Contact", page: "contact" },
   ];
 
+ 
+
   return (
     <header
       className={`fixed inset-x-0 top-0 z-50 transition-all duration-400 ${
@@ -137,12 +148,8 @@ function Header({ page, nav }: { page: Page; nav: (p: Page) => void }) {
           }}
           className="flex items-center gap-2.5 shrink-0"
         >
-          <div className="w-10 h-10 rounded-lg overflow-hidden shadow-sm flex items-center justify-center">
-            <img
-              src={gabitoLogo}
-              alt="Gabito Energy Logo"
-              className="w-full h-full object-cover"
-            />
+          <div className="w-8 h-8 bg-[#15803D] rounded-lg flex items-center justify-center shadow-sm">
+            <Sun className="w-4.5 h-4.5 text-white" strokeWidth={2.5} />
           </div>
           <div className="leading-none">
             <div
@@ -189,7 +196,11 @@ function Header({ page, nav }: { page: Page; nav: (p: Page) => void }) {
                 : "border-white/40 text-white hover:bg-white/10"
             }`}
           >
-            <img src={whatsappIcon} alt="WhatsApp" className="w-10 h-8" />
+           <img
+    src={whatsappIcon}
+    alt="WhatsApp"
+     className="w-8 h-6"
+  />
             WhatsApp
           </a>
           <button
@@ -197,6 +208,18 @@ function Header({ page, nav }: { page: Page; nav: (p: Page) => void }) {
             className="hidden sm:flex items-center gap-1.5 bg-[#15803D] hover:bg-[#166534] text-white text-[13px] font-bold px-4 py-2 rounded-lg transition-colors shadow-sm"
           >
             Get Free Quote
+          </button>
+          <button
+            onClick={goAdmin}
+            title="Admin Dashboard"
+            className={`hidden lg:flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-lg border transition-colors ${
+              solid
+                ? "border-gray-200 text-gray-500 hover:border-[#15803D] hover:text-[#15803D] hover:bg-green-50"
+                : "border-white/20 text-white/60 hover:text-white hover:bg-white/10"
+            }`}
+          >
+            <Lock className="w-3.5 h-3.5" />
+            Admin
           </button>
           <button
             onClick={() => setOpen(!open)}
@@ -228,7 +251,16 @@ function Header({ page, nav }: { page: Page; nav: (p: Page) => void }) {
               </button>
             ))}
           </div>
-          <div className="px-4 pb-4 pt-2 grid grid-cols-2 gap-2 border-t border-gray-100">
+          <div className="px-4 py-2 border-t border-gray-100">
+            <button
+              onClick={goAdmin}
+              className="w-full flex items-center gap-2.5 px-4 py-3 rounded-xl text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors"
+            >
+              <Lock className="w-4 h-4 text-gray-400" />
+              Admin Dashboard
+            </button>
+          </div>
+          <div className="px-4 pb-4 pt-1 grid grid-cols-2 gap-2 border-t border-gray-100">
             <button
               onClick={() => {
                 nav("quote");
@@ -242,10 +274,9 @@ function Header({ page, nav }: { page: Page; nav: (p: Page) => void }) {
               href={wa()}
               target="_blank"
               rel="noopener noreferrer"
-              className="border border-[#15803D] text-[#15803D] text-sm font-semibold py-1 rounded-xl flex items-center justify-center gap-2 hover:bg-green-50 transition-colors"
+              className="border border-[#15803D] text-[#15803D] text-sm font-semibold py-3 rounded-xl flex items-center justify-center gap-1.5"
             >
-              <img src={whatsappIcon} alt="WhatsApp" className="w-10 h-8" />
-              WhatsApp
+              <MessageCircle className="w-4 h-4" /> WhatsApp
             </a>
           </div>
         </div>
@@ -2160,12 +2191,22 @@ function Footer({ nav }: { nav: (p: Page) => void }) {
 
 // ── APP ──────────────────────────────────────────────────────────────────────
 export default function App() {
+  // All hooks must be declared before any conditional returns
+  const [isAdmin, setIsAdmin] = useState(() => window.location.hash.startsWith("#admin"));
   const [page, setPage] = useState<Page>("home");
+
+  useEffect(() => {
+    const fn = () => setIsAdmin(window.location.hash.startsWith("#admin"));
+    window.addEventListener("hashchange", fn);
+    return () => window.removeEventListener("hashchange", fn);
+  }, []);
 
   const nav = (p: Page) => {
     setPage(p);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
+
+  if (isAdmin) return <AdminApp />;
 
   return (
     <div className="min-h-screen">
