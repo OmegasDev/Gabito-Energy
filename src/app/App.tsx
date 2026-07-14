@@ -148,9 +148,13 @@ function Header({ page, nav }: { page: Page; nav: (p: Page) => void }) {
           }}
           className="flex items-center gap-2.5 shrink-0"
         >
-          <div className="w-8 h-8 bg-[#15803D] rounded-lg flex items-center justify-center shadow-sm">
-            <Sun className="w-4.5 h-4.5 text-white" strokeWidth={2.5} />
-          </div>
+           <div className="w-10 h-10 rounded-lg  py-0.5 overflow-hidden shadow-sm flex items-center justify-center">
+                <img
+                  src={gabitoLogo}
+                  alt="Gabito Energy Logo"
+                  className="w-full h-full object-cover"
+                />
+              </div>
           <div className="leading-none">
             <div
               className={`text-sm font-bold tracking-tight ${solid ? "text-gray-900" : "text-white"}`}

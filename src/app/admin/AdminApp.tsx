@@ -544,19 +544,22 @@ function DashPage({ setPage }: { setPage: (p: AdminPage) => void }) {
   const pending = quotes.filter((q) => q.status === "new").length;
 
   const handleInstall = async () => {
-  const promptEvent = (window as any).deferredPrompt;
+  console.log("Deferred Prompt:", deferredPrompt);
 
-  if (!promptEvent) {
-    alert("Install is not available yet. Use Chrome and reload the page.");
+  if (!deferredPrompt) {
+    alert("App is not installable yet.");
     return;
   }
 
-  promptEvent.prompt();
+  deferredPrompt.prompt();
 
-  const result = await promptEvent.userChoice;
+  const { outcome } = await deferredPrompt.userChoice;
 
-  if (result.outcome === "accepted") {
-    (window as any).deferredPrompt = null;
+  console.log("Install outcome:", outcome);
+
+  if (outcome === "accepted") {
+    setDeferredPrompt(null);
+    setCanInstall(false);
   }
 };
 
