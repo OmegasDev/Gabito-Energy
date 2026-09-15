@@ -1,9 +1,4 @@
-/**
- * Gabito Energy Solution — Admin Dashboard
- * Access via: yoursite.com/#admin
- * Passkey: set VITE_ADMIN_PASSKEY in .env.local (default: Gabito@2024)
- */
-
+import { supabase } from "../../lib/supabase";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "motion/react";
 import {
@@ -21,10 +16,20 @@ import {
   Upload, Link, ToggleLeft, ToggleRight, Filter,
   FileText, Database, Layers, GitBranch, Terminal,
 } from "lucide-react";
-import { ImageWithFallback } from "@/app/components/figma/ImageWithFallback";
+
 import {
-  store, Project, QuoteRequest, SiteSettings, ActivityLog,
-  uid, now, getPublicProjects,
+  store,
+  Project,
+  QuoteRequest,
+  SiteSettings,
+  ActivityLog,
+  uid,
+  now,
+  getPublicProjects,
+  getProjectsFromSupabase,
+  addProjectToSupabase,
+  updateProjectInSupabase,
+  deleteProjectFromSupabase,
 } from "./store";
 import img1 from "@/imports/IMG-20260616-WA0002_1_.jpg";
 import img2 from "@/imports/IMG-20260616-WA0004.jpg";
@@ -710,60 +715,160 @@ const BLANK_PROJECT: Omit<Project, "id" | "createdAt" | "updatedAt"> = {
   status: "published",
 };
 
+
 function ProjectModal({ open, onClose, initial, onSave }: {
   open: boolean;
   onClose: () => void;
   initial?: Project;
-  onSave: (p: Project) => void;
+  onSave: (p: Project) => void | Promise<void>;
 }) {
   const [form, setForm] = useState<Omit<Project, "id" | "createdAt" | "updatedAt">>(
     initial ? { ...initial } : { ...BLANK_PROJECT }
   );
   const [imgUrl, setImgUrl] = useState("");
+  const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (open) setForm(initial ? { ...initial } : { ...BLANK_PROJECT });
+    if (open) {
+      setForm(initial ? { ...initial } : { ...BLANK_PROJECT });
+      setImgUrl("");
+      setUploading(false);
+    }
   }, [open, initial]);
 
-  const set = (k: keyof typeof form) => (v: any) => setForm((f) => ({ ...f, [k]: v }));
+  const set = (k: keyof typeof form) => (v: any) =>
+    setForm((f) => ({ ...f, [k]: v }));
 
   const addImage = () => {
     if (imgUrl.trim()) {
-      setForm((f) => ({ ...f, images: [...f.images, imgUrl.trim()] }));
+      setForm((f) => ({
+        ...f,
+        images: [...f.images, imgUrl.trim()],
+      }));
       setImgUrl("");
     }
   };
 
-  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => set("thumbnail")(reader.result as string);
-    reader.readAsDataURL(file);
+
+    // Basic validation
+    if (!file.type.startsWith("image/")) {
+      alert("Please select an image file.");
+      return;
+    }
+
+    // 10MB limit
+    if (file.size > 10 * 1024 * 1024) {
+      alert("Image is too large. Please choose an image under 10MB.");
+      return;
+    }
+
+    try {
+      setUploading(true);
+
+      const projectId = initial?.id ?? `proj-${uid()}`;
+
+      const safeFileName = file.name
+        .toLowerCase()
+        .replace(/[^a-z0-9.-]/g, "-");
+
+      const filePath = `projects/${projectId}-${Date.now()}-${safeFileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("project-images")
+        .upload(filePath, file, {
+          cacheControl: "3600",
+          upsert: false,
+        });
+
+      if (uploadError) {
+        console.error("Image upload failed:", uploadError);
+        alert(`Image upload failed: ${uploadError.message}`);
+        return;
+      }
+
+      const { data } = supabase.storage
+        .from("project-images")
+        .getPublicUrl(filePath);
+
+      if (!data?.publicUrl) {
+        alert("Image uploaded, but the public URL could not be created.");
+        return;
+      }
+
+      set("thumbnail")(data.publicUrl);
+
+      // Reset file input so the same file can be selected again if needed
+      if (fileRef.current) {
+        fileRef.current.value = "";
+      }
+    } catch (error) {
+      console.error("Unexpected image upload error:", error);
+      alert("Something went wrong while uploading the image.");
+    } finally {
+      setUploading(false);
+    }
   };
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (uploading) return;
+
     const project: Project = {
       ...form,
       id: initial?.id ?? `proj-${uid()}`,
       createdAt: initial?.createdAt ?? now(),
       updatedAt: now(),
     };
-    onSave(project);
-    onClose();
+
+    try {
+      setUploading(true);
+      await onSave(project);
+      onClose();
+    } catch (error) {
+      console.error("Failed to save project:", error);
+      alert("Failed to save project to Supabase.");
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
-    <Modal open={open} onClose={onClose} title={initial ? "Edit Project" : "Add New Project"} wide>
-      <form onSubmit={submit} className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
+    <Modal
+      open={open}
+      onClose={uploading ? () => {} : onClose}
+      title={initial ? "Edit Project" : "Add New Project"}
+      wide
+    >
+      <form
+        onSubmit={submit}
+        className="space-y-4 max-h-[70vh] overflow-y-auto pr-1"
+      >
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Input label="Project Title" value={form.title} onChange={set("title")} required placeholder="e.g. Residential Solar Installation" />
+          <Input
+            label="Project Title"
+            value={form.title}
+            onChange={set("title")}
+            required
+            placeholder="e.g. Residential Solar Installation"
+          />
+
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1.5">Category<span className="text-red-500 ml-0.5">*</span></label>
-            <select value={form.category} onChange={(e) => set("category")(e.target.value)}
-              className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#15803D]/25 focus:border-[#15803D] bg-white">
+            <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+              Category
+              <span className="text-red-500 ml-0.5">*</span>
+            </label>
+
+            <select
+              value={form.category}
+              onChange={(e) => set("category")(e.target.value)}
+              className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#15803D]/25 focus:border-[#15803D] bg-white"
+            >
               <option value="residential">Residential</option>
               <option value="commercial">Commercial</option>
               <option value="cctv">CCTV</option>
@@ -772,63 +877,162 @@ function ProjectModal({ open, onClose, initial, onSave }: {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Input label="Location" value={form.location} onChange={set("location")} placeholder="City, State" required />
-          <Input label="Completion Date" value={form.completionDate} onChange={set("completionDate")} type="date" />
+          <Input
+            label="Location"
+            value={form.location}
+            onChange={set("location")}
+            placeholder="City, State"
+            required
+          />
+
+          <Input
+            label="Completion Date"
+            value={form.completionDate}
+            onChange={set("completionDate")}
+            type="date"
+          />
         </div>
 
-        <Textarea label="Challenge" value={form.challenge} onChange={set("challenge")} placeholder="What problem did the customer face?" rows={2} />
-        <Textarea label="Solution" value={form.solution} onChange={set("solution")} placeholder="What system was installed?" rows={2} />
-        <Textarea label="Outcome" value={form.outcome} onChange={set("outcome")} placeholder="What result did the customer achieve?" rows={2} />
+        <Textarea
+          label="Challenge"
+          value={form.challenge}
+          onChange={set("challenge")}
+          placeholder="What problem did the customer face?"
+          rows={2}
+        />
 
-        {/* Thumbnail */}
-        <div>
-          <label className="block text-xs font-semibold text-gray-600 mb-1.5">Thumbnail Image</label>
-          <div className="flex gap-2 mb-2">
-            <input
-              type="url"
-              value={typeof form.thumbnail === "string" && !form.thumbnail.startsWith("data:") ? form.thumbnail : ""}
-              onChange={(e) => set("thumbnail")(e.target.value)}
-              placeholder="Paste image URL..."
-              className="flex-1 px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#15803D]/25 focus:border-[#15803D]"
-            />
-            <button type="button" onClick={() => fileRef.current?.click()}
-              className="px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 flex items-center gap-1.5">
-              <Upload className="w-4 h-4" /> Upload
-            </button>
-            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
-          </div>
-          {form.thumbnail && (
-            <div className="relative w-full h-32 bg-gray-100 rounded-xl overflow-hidden">
-              <img src={form.thumbnail} alt="Thumbnail preview" className="w-full h-full object-cover" />
-              <button type="button" onClick={() => set("thumbnail")("")}
-                className="absolute top-2 right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center">
-                <X className="w-3 h-3" />
-              </button>
-            </div>
-          )}
-        </div>
+        <Textarea
+          label="Solution"
+          value={form.solution}
+          onChange={set("solution")}
+          placeholder="What system was installed?"
+          rows={2}
+        />
+
+        <Textarea
+          label="Outcome"
+          value={form.outcome}
+          onChange={set("outcome")}
+          placeholder="What result did the customer achieve?"
+          rows={2}
+        />
+
+       {/* Thumbnail */}
+<div>
+  <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+    Thumbnail Image
+  </label>
+
+  <div className="border-2 border-dashed border-gray-200 rounded-xl p-4">
+    {form.thumbnail ? (
+      <div className="relative">
+        <img
+          src={form.thumbnail}
+          alt="Thumbnail preview"
+          className="w-full h-40 object-cover rounded-lg"
+        />
+
+        <button
+          type="button"
+          disabled={uploading}
+          onClick={() => set("thumbnail")("")}
+          className="absolute top-2 right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center shadow disabled:opacity-50"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+    ) : (
+      <button
+        type="button"
+        disabled={uploading}
+        onClick={() => fileRef.current?.click()}
+        className="w-full flex flex-col items-center justify-center py-8 text-gray-500 hover:text-[#15803D] hover:bg-gray-50 rounded-lg transition-colors disabled:opacity-50"
+      >
+        <Upload className="w-8 h-8 mb-2" />
+
+        <span className="text-sm font-semibold">
+          {uploading ? "Uploading image..." : "Click to select an image"}
+        </span>
+
+        <span className="text-xs text-gray-400 mt-1">
+          PNG, JPG, WEBP — up to 10MB
+        </span>
+      </button>
+    )}
+
+    <input
+      ref={fileRef}
+      type="file"
+      accept="image/png,image/jpeg,image/jpg,image/webp"
+      className="hidden"
+      onChange={handleFile}
+    />
+  </div>
+
+  {/* Optional image URL */}
+  <div className="flex gap-2 mt-2">
+    <input
+      type="url"
+      value={
+        typeof form.thumbnail === "string" &&
+        !form.thumbnail.startsWith("data:")
+          ? form.thumbnail
+          : ""
+      }
+      onChange={(e) => set("thumbnail")(e.target.value)}
+      placeholder="Or paste image URL..."
+      className="flex-1 px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#15803D]/25 focus:border-[#15803D]"
+    />
+  </div>
+</div>
 
         {/* Additional images */}
         <div>
-          <label className="block text-xs font-semibold text-gray-600 mb-1.5">Additional Images</label>
+          <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+            Additional Images
+          </label>
+
           <div className="flex gap-2 mb-2">
-            <input type="url" value={imgUrl} onChange={(e) => setImgUrl(e.target.value)}
+            <input
+              type="url"
+              value={imgUrl}
+              onChange={(e) => setImgUrl(e.target.value)}
               placeholder="Paste image URL..."
               className="flex-1 px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#15803D]/25 focus:border-[#15803D]"
             />
-            <button type="button" onClick={addImage}
-              className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-xl text-sm font-medium">
+
+            <button
+              type="button"
+              onClick={addImage}
+              className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-xl text-sm font-medium"
+            >
               Add
             </button>
           </div>
+
           {form.images.length > 0 && (
             <div className="flex gap-2 flex-wrap">
               {form.images.map((url, i) => (
-                <div key={i} className="relative w-20 h-16 bg-gray-100 rounded-lg overflow-hidden group">
-                  <img src={url} alt="" className="w-full h-full object-cover" />
-                  <button type="button"
-                    onClick={() => setForm((f) => ({ ...f, images: f.images.filter((_, j) => j !== i) }))}
-                    className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <div
+                  key={i}
+                  className="relative w-20 h-16 bg-gray-100 rounded-lg overflow-hidden group"
+                >
+                  <img
+                    src={url}
+                    alt=""
+                    className="w-full h-full object-cover"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setForm((f) => ({
+                        ...f,
+                        images: f.images.filter((_, j) => j !== i),
+                      }))
+                    }
+                    className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
                     <X className="w-2.5 h-2.5" />
                   </button>
                 </div>
@@ -839,15 +1043,38 @@ function ProjectModal({ open, onClose, initial, onSave }: {
 
         {/* Toggles */}
         <div className="bg-gray-50 rounded-xl p-4 space-y-1 border border-gray-100">
-          <Toggle label="Featured Project" checked={form.featured} onChange={set("featured")} desc="Highlighted in project listings" />
-          <Toggle label="Show on Homepage" checked={form.showOnHomepage} onChange={set("showOnHomepage")} desc="Appears in Recent Installations" />
-          <Toggle label="Published" checked={form.published} onChange={set("published")} desc="Visible on public website" />
+          <Toggle
+            label="Featured Project"
+            checked={form.featured}
+            onChange={set("featured")}
+            desc="Highlighted in project listings"
+          />
+
+          <Toggle
+            label="Show on Homepage"
+            checked={form.showOnHomepage}
+            onChange={set("showOnHomepage")}
+            desc="Appears in Recent Installations"
+          />
+
+          <Toggle
+            label="Published"
+            checked={form.published}
+            onChange={set("published")}
+            desc="Visible on public website"
+          />
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-gray-600 mb-1.5">Status</label>
-          <select value={form.status} onChange={(e) => set("status")(e.target.value)}
-            className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#15803D]/25 focus:border-[#15803D] bg-white">
+          <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+            Status
+          </label>
+
+          <select
+            value={form.status}
+            onChange={(e) => set("status")(e.target.value)}
+            className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#15803D]/25 focus:border-[#15803D] bg-white"
+          >
             <option value="draft">Draft</option>
             <option value="published">Published</option>
             <option value="archived">Archived</option>
@@ -855,9 +1082,25 @@ function ProjectModal({ open, onClose, initial, onSave }: {
         </div>
 
         <div className="flex gap-3 pt-2">
-          <button type="button" onClick={onClose} className="flex-1 py-3 border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50">Cancel</button>
-          <button type="submit" className="flex-1 py-3 bg-[#15803D] hover:bg-[#166534] text-white rounded-xl text-sm font-bold transition-colors">
-            {initial ? "Save Changes" : "Add Project"}
+          <button
+            type="button"
+            disabled={uploading}
+            onClick={onClose}
+            className="flex-1 py-3 border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+          >
+            Cancel
+          </button>
+
+          <button
+            type="submit"
+            disabled={uploading}
+            className="flex-1 py-3 bg-[#15803D] hover:bg-[#166534] text-white rounded-xl text-sm font-bold transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {uploading
+              ? "Saving..."
+              : initial
+              ? "Save Changes"
+              : "Add Project"}
           </button>
         </div>
       </form>
@@ -865,39 +1108,103 @@ function ProjectModal({ open, onClose, initial, onSave }: {
   );
 }
 
+
 function ProjPage() {
-  const [projects, setProjects] = useState<Project[]>(store.getProjects);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<"all" | "residential" | "commercial" | "cctv">("all");
+  const [filter, setFilter] = useState<
+    "all" | "residential" | "commercial" | "cctv"
+  >("all");
   const [addOpen, setAddOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Project | undefined>();
   const [previewTarget, setPreviewTarget] = useState<Project | undefined>();
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const reload = () => setProjects(store.getProjects());
+  // Load projects from Supabase
+  const reload = async () => {
+    try {
+      const data = await getProjectsFromSupabase();
+      setProjects(data);
+    } catch (error) {
+      console.error("Failed to load projects:", error);
+      alert("Failed to load projects from Supabase.");
+    }
+  };
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      await reload();
+      setLoading(false);
+    };
+
+    load();
+  }, []);
 
   const filtered = projects.filter((p) => {
     const q = search.toLowerCase();
-    const matchSearch = p.title.toLowerCase().includes(q) || p.location.toLowerCase().includes(q);
-    const matchFilter = filter === "all" || p.category === filter;
+
+    const matchSearch =
+      p.title.toLowerCase().includes(q) ||
+      p.location.toLowerCase().includes(q);
+
+    const matchFilter =
+      filter === "all" || p.category === filter;
+
     return matchSearch && matchFilter;
   });
 
-  const save = (p: Project) => {
-    const exists = projects.find((x) => x.id === p.id);
-    if (exists) { store.updateProject(p.id, p); }
-    else { store.addProject(p); }
-    reload();
+  const save = async (p: Project) => {
+    try {
+      const exists = projects.find((x) => x.id === p.id);
+
+      if (exists) {
+        await updateProjectInSupabase(p.id, p);
+      } else {
+        await addProjectToSupabase(p);
+      }
+
+      await reload();
+
+      setAddOpen(false);
+      setEditTarget(undefined);
+    } catch (error) {
+      console.error("Failed to save project:", error);
+      alert("Failed to save project to Supabase.");
+    }
   };
 
-  const duplicate = (p: Project) => {
-    const dup: Project = { ...p, id: `proj-${uid()}`, title: `${p.title} (Copy)`, createdAt: now(), updatedAt: now(), published: false };
-    store.addProject(dup);
-    reload();
+  const duplicate = async (p: Project) => {
+    try {
+      const dup: Project = {
+        ...p,
+        id: `proj-${uid()}`,
+        title: `${p.title} (Copy)`,
+        createdAt: now(),
+        updatedAt: now(),
+        published: false,
+      };
+
+      await addProjectToSupabase(dup);
+      await reload();
+    } catch (error) {
+      console.error("Failed to duplicate project:", error);
+      alert("Failed to duplicate project.");
+    }
   };
 
-  const confirmDelete = () => {
-    if (deleteId) { store.deleteProject(deleteId); setDeleteId(null); reload(); }
+  const confirmDelete = async () => {
+    if (!deleteId) return;
+
+    try {
+      await deleteProjectFromSupabase(deleteId);
+      setDeleteId(null);
+      await reload();
+    } catch (error) {
+      console.error("Failed to delete project:", error);
+      alert("Failed to delete project.");
+    }
   };
 
   return (
@@ -906,51 +1213,109 @@ function ProjPage() {
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input value={search} onChange={(e) => setSearch(e.target.value)}
+
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
             placeholder="Search projects..."
-            className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#15803D]/25 focus:border-[#15803D] bg-white" />
+            className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#15803D]/25 focus:border-[#15803D] bg-white"
+          />
         </div>
+
         <div className="flex gap-2">
-          {(["all", "residential", "commercial", "cctv"] as const).map((f) => (
-            <button key={f} onClick={() => setFilter(f)}
-              className={`px-4 py-2.5 rounded-xl text-xs font-semibold capitalize transition-colors ${filter === f ? "bg-[#15803D] text-white" : "bg-white border border-gray-200 text-gray-600 hover:border-gray-300"}`}>
-              {f === "all" ? `All (${projects.length})` : CATEGORY_LABELS[f]}
+          {(
+            ["all", "residential", "commercial", "cctv"] as const
+          ).map((f) => (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              className={`px-4 py-2.5 rounded-xl text-xs font-semibold capitalize transition-colors ${
+                filter === f
+                  ? "bg-[#15803D] text-white"
+                  : "bg-white border border-gray-200 text-gray-600 hover:border-gray-300"
+              }`}
+            >
+              {f === "all"
+                ? `All (${projects.length})`
+                : CATEGORY_LABELS[f]}
             </button>
           ))}
         </div>
-        <button onClick={() => setAddOpen(true)}
-          className="flex items-center gap-2 bg-[#15803D] hover:bg-[#166534] text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-colors shrink-0">
-          <Plus className="w-4 h-4" /> Add Project
+
+        <button
+          onClick={() => setAddOpen(true)}
+          className="flex items-center gap-2 bg-[#15803D] hover:bg-[#166534] text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-colors shrink-0"
+        >
+          <Plus className="w-4 h-4" />
+          Add Project
         </button>
       </div>
 
-      {/* Grid */}
-      {filtered.length === 0 ? (
+      {/* Loading */}
+      {loading ? (
+        <div className="bg-white rounded-2xl p-12 text-center border border-gray-100">
+          <p className="font-semibold text-gray-500">
+            Loading projects...
+          </p>
+        </div>
+      ) : filtered.length === 0 ? (
         <div className="bg-white rounded-2xl p-12 text-center border border-gray-100">
           <FolderOpen className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-          <p className="font-semibold text-gray-500">No projects found</p>
+
+          <p className="font-semibold text-gray-500">
+            No projects found
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
           {filtered.map((p) => (
-            <div key={p.id} className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-md transition-shadow group">
+            <div
+              key={p.id}
+              className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-md transition-shadow group"
+            >
               {/* Thumbnail */}
               <div className="relative h-44 bg-gray-100 overflow-hidden">
                 {p.thumbnail ? (
-                  <img src={p.thumbnail} alt={p.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  <img
+                    src={p.thumbnail}
+                    alt={p.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
                 ) : (
                   <div className="flex items-center justify-center h-full text-gray-300">
                     <FolderOpen className="w-10 h-10" />
                   </div>
                 )}
+
                 <div className="absolute top-3 left-3 flex gap-1.5">
-                  <Badge color={p.category === "residential" ? "bg-blue-100 text-blue-700" : p.category === "commercial" ? "bg-amber-100 text-amber-700" : "bg-purple-100 text-purple-700"}>
+                  <Badge
+                    color={
+                      p.category === "residential"
+                        ? "bg-blue-100 text-blue-700"
+                        : p.category === "commercial"
+                        ? "bg-amber-100 text-amber-700"
+                        : "bg-purple-100 text-purple-700"
+                    }
+                  >
                     {CATEGORY_LABELS[p.category]}
                   </Badge>
-                  {p.featured && <Badge color="bg-yellow-100 text-yellow-700"><Star className="w-2.5 h-2.5 inline mr-0.5" />Featured</Badge>}
+
+                  {p.featured && (
+                    <Badge color="bg-yellow-100 text-yellow-700">
+                      <Star className="w-2.5 h-2.5 inline mr-0.5" />
+                      Featured
+                    </Badge>
+                  )}
                 </div>
+
                 <div className="absolute top-3 right-3">
-                  <Badge color={p.published ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}>
+                  <Badge
+                    color={
+                      p.published
+                        ? "bg-green-100 text-green-700"
+                        : "bg-gray-100 text-gray-500"
+                    }
+                  >
                     {p.published ? "Live" : "Draft"}
                   </Badge>
                 </div>
@@ -958,29 +1323,67 @@ function ProjPage() {
 
               {/* Body */}
               <div className="p-4">
-                <h3 className="font-bold text-gray-900 text-sm mb-1 line-clamp-1">{p.title}</h3>
+                <h3 className="font-bold text-gray-900 text-sm mb-1 line-clamp-1">
+                  {p.title}
+                </h3>
+
                 <p className="text-[#15803D] text-xs flex items-center gap-1 mb-3">
-                  <MapPin className="w-3 h-3" />{p.location}
+                  <MapPin className="w-3 h-3" />
+                  {p.location}
                 </p>
+
                 <div className="flex gap-1.5 mb-3">
-                  {p.showOnHomepage && <Badge color="bg-green-50 text-green-600"><Home className="w-2.5 h-2.5 inline mr-0.5" />Homepage</Badge>}
-                  <Badge color={p.status === "published" ? "bg-green-50 text-green-700" : p.status === "archived" ? "bg-gray-100 text-gray-500" : "bg-amber-50 text-amber-700"}>
+                  {p.showOnHomepage && (
+                    <Badge color="bg-green-50 text-green-600">
+                      <Home className="w-2.5 h-2.5 inline mr-0.5" />
+                      Homepage
+                    </Badge>
+                  )}
+
+                  <Badge
+                    color={
+                      p.status === "published"
+                        ? "bg-green-50 text-green-700"
+                        : p.status === "archived"
+                        ? "bg-gray-100 text-gray-500"
+                        : "bg-amber-50 text-amber-700"
+                    }
+                  >
                     {p.status}
                   </Badge>
                 </div>
 
                 {/* Actions */}
                 <div className="flex items-center gap-1.5 pt-3 border-t border-gray-50">
-                  <button onClick={() => setPreviewTarget(p)} className="flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold text-gray-600 hover:bg-gray-50 border border-gray-100 transition-colors">
-                    <Eye className="w-3.5 h-3.5" /> Preview
+                  <button
+                    onClick={() => setPreviewTarget(p)}
+                    className="flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold text-gray-600 hover:bg-gray-50 border border-gray-100 transition-colors"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    Preview
                   </button>
-                  <button onClick={() => setEditTarget(p)} className="flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold text-blue-600 hover:bg-blue-50 border border-blue-100 transition-colors">
-                    <Edit2 className="w-3.5 h-3.5" /> Edit
+
+                  <button
+                    onClick={() => setEditTarget(p)}
+                    className="flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold text-blue-600 hover:bg-blue-50 border border-blue-100 transition-colors"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                    Edit
                   </button>
-                  <button onClick={() => duplicate(p)} className="p-2 rounded-lg text-gray-500 hover:bg-gray-50 border border-gray-100 transition-colors" title="Duplicate">
+
+                  <button
+                    onClick={() => duplicate(p)}
+                    className="p-2 rounded-lg text-gray-500 hover:bg-gray-50 border border-gray-100 transition-colors"
+                    title="Duplicate"
+                  >
                     <Copy className="w-3.5 h-3.5" />
                   </button>
-                  <button onClick={() => setDeleteId(p.id)} className="p-2 rounded-lg text-red-400 hover:bg-red-50 border border-red-100 transition-colors" title="Delete">
+
+                  <button
+                    onClick={() => setDeleteId(p.id)}
+                    className="p-2 rounded-lg text-red-400 hover:bg-red-50 border border-red-100 transition-colors"
+                    title="Delete"
+                  >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -990,60 +1393,158 @@ function ProjPage() {
         </div>
       )}
 
-      {/* Modals */}
-      <ProjectModal open={addOpen} onClose={() => setAddOpen(false)} onSave={save} />
-      <ProjectModal open={!!editTarget} onClose={() => setEditTarget(undefined)} initial={editTarget} onSave={save} />
+      {/* Add Project */}
+      <ProjectModal
+        open={addOpen}
+        onClose={() => setAddOpen(false)}
+        onSave={save}
+      />
+
+      {/* Edit Project */}
+      <ProjectModal
+        open={!!editTarget}
+        onClose={() => setEditTarget(undefined)}
+        initial={editTarget}
+        onSave={save}
+      />
 
       {/* Preview Modal */}
-      <Modal open={!!previewTarget} onClose={() => setPreviewTarget(undefined)} title="Project Preview" wide>
+      <Modal
+        open={!!previewTarget}
+        onClose={() => setPreviewTarget(undefined)}
+        title="Project Preview"
+        wide
+      >
         {previewTarget && (
           <div className="space-y-4 max-h-[70vh] overflow-y-auto">
             {previewTarget.thumbnail && (
               <div className="h-52 bg-gray-100 rounded-xl overflow-hidden">
-                <img src={previewTarget.thumbnail} alt={previewTarget.title} className="w-full h-full object-cover" />
+                <img
+                  src={previewTarget.thumbnail}
+                  alt={previewTarget.title}
+                  className="w-full h-full object-cover"
+                />
               </div>
             )}
+
             <div className="flex flex-wrap gap-2">
-              <Badge color="bg-blue-100 text-blue-700">{CATEGORY_LABELS[previewTarget.category]}</Badge>
-              {previewTarget.featured && <Badge color="bg-yellow-100 text-yellow-700">⭐ Featured</Badge>}
-              {previewTarget.showOnHomepage && <Badge color="bg-green-100 text-green-700">🏠 Homepage</Badge>}
-              <Badge color={previewTarget.published ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}>
-                {previewTarget.published ? "Published" : "Draft"}
+              <Badge color="bg-blue-100 text-blue-700">
+                {CATEGORY_LABELS[previewTarget.category]}
+              </Badge>
+
+              {previewTarget.featured && (
+                <Badge color="bg-yellow-100 text-yellow-700">
+                  ⭐ Featured
+                </Badge>
+              )}
+
+              {previewTarget.showOnHomepage && (
+                <Badge color="bg-green-100 text-green-700">
+                  🏠 Homepage
+                </Badge>
+              )}
+
+              <Badge
+                color={
+                  previewTarget.published
+                    ? "bg-green-100 text-green-700"
+                    : "bg-gray-100 text-gray-500"
+                }
+              >
+                {previewTarget.published
+                  ? "Published"
+                  : "Draft"}
               </Badge>
             </div>
+
             <div>
-              <h2 className="text-xl font-extrabold text-gray-900">{previewTarget.title}</h2>
-              <p className="text-[#15803D] text-sm flex items-center gap-1 mt-1"><MapPin className="w-3.5 h-3.5" />{previewTarget.location}</p>
+              <h2 className="text-xl font-extrabold text-gray-900">
+                {previewTarget.title}
+              </h2>
+
+              <p className="text-[#15803D] text-sm flex items-center gap-1 mt-1">
+                <MapPin className="w-3.5 h-3.5" />
+                {previewTarget.location}
+              </p>
             </div>
-            {[{ l: "Challenge", v: previewTarget.challenge }, { l: "Solution", v: previewTarget.solution }, { l: "Outcome", v: previewTarget.outcome }].map((row) => (
-              <div key={row.l} className="bg-gray-50 rounded-xl p-4">
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">{row.l}</p>
-                <p className="text-sm text-gray-700">{row.v}</p>
+
+            {[
+              {
+                l: "Challenge",
+                v: previewTarget.challenge,
+              },
+              {
+                l: "Solution",
+                v: previewTarget.solution,
+              },
+              {
+                l: "Outcome",
+                v: previewTarget.outcome,
+              },
+            ].map((row) => (
+              <div
+                key={row.l}
+                className="bg-gray-50 rounded-xl p-4"
+              >
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">
+                  {row.l}
+                </p>
+
+                <p className="text-sm text-gray-700">
+                  {row.v}
+                </p>
               </div>
             ))}
-            <p className="text-xs text-gray-400">Completed: {fmtDate(previewTarget.completionDate)} · Created: {fmtDate(previewTarget.createdAt)}</p>
+
+            <p className="text-xs text-gray-400">
+              Completed:{" "}
+              {fmtDate(previewTarget.completionDate)} ·
+              Created: {fmtDate(previewTarget.createdAt)}
+            </p>
           </div>
         )}
       </Modal>
 
       {/* Delete confirm */}
-      <Modal open={!!deleteId} onClose={() => setDeleteId(null)} title="Delete Project">
+      <Modal
+        open={!!deleteId}
+        onClose={() => setDeleteId(null)}
+        title="Delete Project"
+      >
         <div className="text-center">
           <div className="w-12 h-12 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <Trash2 className="w-6 h-6 text-red-500" />
           </div>
-          <p className="font-semibold text-gray-900 mb-2">Are you sure?</p>
-          <p className="text-sm text-gray-500 mb-6">This project will be permanently deleted and removed from the website.</p>
+
+          <p className="font-semibold text-gray-900 mb-2">
+            Are you sure?
+          </p>
+
+          <p className="text-sm text-gray-500 mb-6">
+            This project will be permanently deleted and removed
+            from the website.
+          </p>
+
           <div className="flex gap-3">
-            <button onClick={() => setDeleteId(null)} className="flex-1 py-3 border border-gray-200 rounded-xl text-sm font-semibold hover:bg-gray-50">Cancel</button>
-            <button onClick={confirmDelete} className="flex-1 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl text-sm font-bold transition-colors">Delete Project</button>
+            <button
+              onClick={() => setDeleteId(null)}
+              className="flex-1 py-3 border border-gray-200 rounded-xl text-sm font-semibold hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+
+            <button
+              onClick={confirmDelete}
+              className="flex-1 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl text-sm font-bold transition-colors"
+            >
+              Delete Project
+            </button>
           </div>
         </div>
       </Modal>
     </div>
   );
 }
-
 // ── QUOTES PAGE ───────────────────────────────────────────────────────────────
 
 function QuotePage() {

@@ -1,7 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "motion/react";
-import { AdminApp } from "@/app/admin/AdminApp";
-import { getHomepageProjects, getPublicProjects, type Project as AdminProject } from "./admin/store";
+import { supabase } from "./../lib/supabase";
+import { AdminApp } from "./admin/AdminApp";
+import {
+  getProjectsFromSupabase,
+  type Project as AdminProject,
+} from "./admin/store";
 import {
   Sun,
   Battery,
@@ -431,37 +435,25 @@ function HomePage({ nav }: { nav: (p: Page) => void }) {
     },
   ];
 
-  const projects = [
-    {
-      img: img1,
-      title: "Residential Hybrid System",
-      location: "Nnewi, Anambra",
-      type: "Residential",
-      desc: "2× AllsparkPower lithium batteries + Firman 5kVA hybrid inverter for a family home.",
-    },
-    {
-      img: img7,
-      title: "Commercial Solar Setup",
-      location: "Awka, Anambra",
-      type: "Commercial",
-      desc: "Multiple LuxpowerTex Energy inverters and large battery bank for a commercial building.",
-    },
-    {
-      img: img3,
-      title: "Twin Inverter System",
-      location: "Onitsha, Anambra",
-      type: "Commercial",
-      desc: "2× Felicity Solar inverters paired with Cworth Energy storage units for high-load demands.",
-    },
-    {
-      img: img4,
-      title: "Office setup",
-      location: "Nnewi, Anambra",
-      type: "Office",
-      desc: "Felicity Solar inverter with wall-mounted lithium iron phosphate battery — clean and compact.",
-    },
-  ];
+  const [projects, setProjects] = useState<AdminProject[]>([]);
 
+useEffect(() => {
+  const loadProjects = async () => {
+    try {
+      const data = await getProjectsFromSupabase();
+
+      const recentProjects = data
+        .filter((project) => project.published)
+        .slice(0, 4);
+
+      setProjects(recentProjects);
+    } catch (error) {
+      console.error("Failed to load homepage projects:", error);
+    }
+  };
+
+  loadProjects();
+}, []);
   const homeFaqs = [
     {
       q: "How much does solar installation cost in Nigeria?",
@@ -762,12 +754,12 @@ function HomePage({ nav }: { nav: (p: Page) => void }) {
                 >
                   <div className="relative h-52 bg-gray-100 overflow-hidden">
                     <ImageWithFallback
-                      src={p.img}
+                      src={p.thumbnail}
                       alt={p.title}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                     <span className="absolute top-3 left-3 bg-white/92 text-xs font-semibold text-gray-700 px-2.5 py-1 rounded-full backdrop-blur-sm">
-                      {p.type}
+                      {p.category}
                     </span>
                   </div>
                   <div className="p-4">
@@ -779,7 +771,7 @@ function HomePage({ nav }: { nav: (p: Page) => void }) {
                       {p.location}
                     </p>
                     <p className="text-gray-500 text-xs leading-relaxed">
-                      {p.desc}
+                      {p.solution}
                     </p>
                   </div>
                 </div>
@@ -938,73 +930,28 @@ function HomePage({ nav }: { nav: (p: Page) => void }) {
 function ProjectsPage({ nav }: { nav: (p: Page) => void }) {
   const [tab, setTab] = useState<"all" | "residential" | "commercial">("all");
 
-  const all = [
-    {
-      img: img1,
-      title: "AllsparkPower + Firman Hybrid System",
-      location: "Nnewi, Anambra",
-      type: "residential",
-      challenge: "Family home experiencing 18+ hours of daily blackouts.",
-      solution:
-        "2× AllsparkPower lithium batteries + Firman 5kVA hybrid inverter.",
-      outcome: "Full home power for 12+ hours per charge cycle.",
-    },
-    {
-      img: img8,
-      title: "LuxpowerTex",
-      location: "Awka, Anambra",
-      type: "commercial",
-      challenge: "Business losing revenue from constant power interruptions.",
-      solution: "Multiple inverters with large battery bank.",
-      outcome: "Uninterrupted operations from 8am to 10pm daily.",
-    },
-    {
-      img: img3,
-      title: "Twin Felicity Solar Inverter Setup",
-      location: "Onitsha, Anambra",
-      type: "commercial",
-      challenge:
-        "High energy demand commercial facility needing expanded capacity.",
-      solution: "2× Felicity Solar inverters + 2× Cworth Energy battery units.",
-      outcome: "Heavy commercial loads powered reliably around the clock.",
-    },
-    {
-      img: img4,
-      title: "Felicity + LiFePO4 Wall Battery",
-      location: "Nnewi, Anambra",
-      type: "residential",
-      challenge: "Homeowner needed a clean, compact wall-mounted solution.",
-      solution:
-        "Felicity Solar inverter + wall-mounted lithium iron phosphate battery.",
-      outcome: "Compact installation in dedicated utility room, zero noise.",
-    },
-    {
-      img: img5,
-      title: "Firman Hybrid Wall System",
-      location: "Nkpor, Anambra",
-      type: "residential",
-      challenge:
-        "Small property needing efficient backup power on limited wall space.",
-      solution:
-        "Firman hybrid inverter + Firman 05 wall-mounted battery storage.",
-      outcome:
-        "Reliable 8-hour backup on a compact, professionally mounted installation.",
-    },
-    {
-      img: img6,
-      title: "LvtopSun LiFePO4 Power Wall",
-      location: "Nnewi, Anambra",
-      type: "residential",
-      challenge:
-        "Customer wanted premium lithium technology with full solar integration.",
-      solution:
-        "Felicity Solar inverter + LvtopSun 51.2V 300Ah LiFePO4 power wall.",
-      outcome:
-        "Over 15kWh of clean storage — enough for 24-hour energy independence.",
-    },
-  ];
 
-  const filtered = tab === "all" ? all : all.filter((p) => p.type === tab);
+  const [all, setAll] = useState<AdminProject[]>([]);
+const [loading, setLoading] = useState(true);
+
+useEffect(() => {
+  const loadProjects = async () => {
+    try {
+      const data = await getProjectsFromSupabase();
+      setAll(data);
+    } catch (error) {
+      console.error("Failed to load public projects:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  loadProjects();
+}, []);
+
+  
+
+  const filtered = tab === "all" ? all : all.filter((p) => p.category === tab);
 
   return (
     <div className="pt-16">
@@ -1038,7 +985,7 @@ function ProjectsPage({ nav }: { nav: (p: Page) => void }) {
               >
                 {t === "all"
                   ? `All Projects (${all.length})`
-                  : `${t} (${all.filter((p) => p.type === t).length})`}
+                  : `${t} (${all.filter((p) => p.category === t).length})`}
               </button>
             ))}
           </div>
@@ -1049,18 +996,18 @@ function ProjectsPage({ nav }: { nav: (p: Page) => void }) {
                 <div className="group rounded-2xl overflow-hidden border border-gray-100 hover:shadow-lg transition-all duration-300">
                   <div className="relative h-60 bg-gray-100 overflow-hidden">
                     <ImageWithFallback
-                      src={p.img}
+                      src={p.thumbnail}
                       alt={p.title}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                     <span
                       className={`absolute top-3 left-3 text-xs font-semibold px-3 py-1 rounded-full ${
-                        p.type === "residential"
+                        p.category === "residential"
                           ? "bg-blue-100 text-blue-700"
                           : "bg-amber-100 text-amber-700"
                       }`}
                     >
-                      {p.type === "residential" ? "Residential" : "Commercial"}
+                      {p.category === "residential" ? "Residential" : "Commercial"}
                     </span>
                   </div>
                   <div className="p-5">
@@ -2204,6 +2151,7 @@ export default function App() {
     window.addEventListener("hashchange", fn);
     return () => window.removeEventListener("hashchange", fn);
   }, []);
+
 
   const nav = (p: Page) => {
     setPage(p);

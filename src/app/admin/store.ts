@@ -1,7 +1,4 @@
-// Gabito Energy Solution — Admin Data Store
-// All data persists in localStorage. Replace with Supabase in production.
-
-// ── TYPES ────────────────────────────────────────────────────────────────────
+import { supabase } from "../../lib/supabase";
 
 export interface Project {
   id: string;
@@ -11,12 +8,12 @@ export interface Project {
   challenge: string;
   solution: string;
   outcome: string;
-  thumbnail: string;        // URL or base64
-  images: string[];         // additional image URLs
+  thumbnail: string;
+  images: string[];
   featured: boolean;
   showOnHomepage: boolean;
   published: boolean;
-  completionDate: string;   // ISO date string
+  completionDate: string;
   createdAt: string;
   updatedAt: string;
   status: "draft" | "published" | "archived";
@@ -50,7 +47,12 @@ export interface SiteSettings {
 
 export interface ActivityLog {
   id: string;
-  type: "project_added" | "project_updated" | "project_deleted" | "quote_received" | "settings_updated";
+  type:
+    | "project_added"
+    | "project_updated"
+    | "project_deleted"
+    | "quote_received"
+    | "settings_updated";
   description: string;
   timestamp: string;
 }
@@ -98,74 +100,304 @@ export function now(): string {
   return new Date().toISOString();
 }
 
-// ── STORE ─────────────────────────────────────────────────────────────────────
+// ── SUPABASE PROJECT MAPPER ──────────────────────────────────────────────────
+
+function mapProject(row: any): Project {
+  return {
+    id: row.id,
+    title: row.title,
+    category: row.category,
+    location: row.location,
+    challenge: row.challenge ?? "",
+    solution: row.solution ?? "",
+    outcome: row.outcome ?? "",
+    thumbnail: row.thumbnail ?? "",
+    images: row.images ?? [],
+    featured: row.featured ?? false,
+    showOnHomepage: row.show_on_homepage ?? false,
+    published: row.published ?? false,
+    completionDate: row.completion_date ?? "",
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    status: row.status,
+  };
+}
+
+// ── SUPABASE PROJECT FUNCTIONS ───────────────────────────────────────────────
+
+export async function getProjectsFromSupabase(): Promise<Project[]> {
+  const { data, error } = await supabase
+    .from("projects")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Failed to load projects:", error);
+    throw error;
+  }
+
+  return (data ?? []).map(mapProject);
+}
+
+export async function addProjectToSupabase(
+  project: Project
+): Promise<Project> {
+  const { data, error } = await supabase
+    .from("projects")
+    .insert({
+      id: project.id,
+      title: project.title,
+      category: project.category,
+      location: project.location,
+      challenge: project.challenge,
+      solution: project.solution,
+      outcome: project.outcome,
+      thumbnail: project.thumbnail,
+      images: project.images,
+      featured: project.featured,
+      show_on_homepage: project.showOnHomepage,
+      published: project.published,
+      completion_date: project.completionDate || null,
+      created_at: project.createdAt,
+      updated_at: project.updatedAt,
+      status: project.status,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Failed to add project:", error);
+    throw error;
+  }
+
+  return mapProject(data);
+}
+
+export async function updateProjectInSupabase(
+  id: string,
+  updates: Partial<Project>
+): Promise<Project> {
+  const dbUpdates: Record<string, any> = {
+    updated_at: now(),
+  };
+
+  if (updates.title !== undefined) dbUpdates.title = updates.title;
+  if (updates.category !== undefined) dbUpdates.category = updates.category;
+  if (updates.location !== undefined) dbUpdates.location = updates.location;
+  if (updates.challenge !== undefined) dbUpdates.challenge = updates.challenge;
+  if (updates.solution !== undefined) dbUpdates.solution = updates.solution;
+  if (updates.outcome !== undefined) dbUpdates.outcome = updates.outcome;
+  if (updates.thumbnail !== undefined) dbUpdates.thumbnail = updates.thumbnail;
+  if (updates.images !== undefined) dbUpdates.images = updates.images;
+  if (updates.featured !== undefined) dbUpdates.featured = updates.featured;
+  if (updates.showOnHomepage !== undefined) {
+    dbUpdates.show_on_homepage = updates.showOnHomepage;
+  }
+  if (updates.published !== undefined) dbUpdates.published = updates.published;
+  if (updates.completionDate !== undefined) {
+    dbUpdates.completion_date = updates.completionDate || null;
+  }
+  if (updates.status !== undefined) dbUpdates.status = updates.status;
+
+  const { data, error } = await supabase
+    .from("projects")
+    .update(dbUpdates)
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Failed to update project:", error);
+    throw error;
+  }
+
+  return mapProject(data);
+}
+
+export async function deleteProjectFromSupabase(id: string): Promise<void> {
+  const { error } = await supabase
+    .from("projects")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    console.error("Failed to delete project:", error);
+    throw error;
+  }
+}
+
+// ── LOCAL STORE ───────────────────────────────────────────────────────────────
+// Kept temporarily for quotes, settings and activity.
+// We will migrate these separately.
 
 export const store = {
-  // Projects
+  // Projects - TEMPORARY LOCAL VERSION
   getProjects: (): Project[] => safeParse<Project[]>(K.projects, []),
-  setProjects: (p: Project[]) => localStorage.setItem(K.projects, JSON.stringify(p)),
+
+  setProjects: (p: Project[]) =>
+    localStorage.setItem(K.projects, JSON.stringify(p)),
 
   addProject: (p: Project) => {
     const projects = store.getProjects();
     store.setProjects([...projects, p]);
-    store.addActivity({ type: "project_added", description: `New project added: ${p.title}` });
+
+    store.addActivity({
+      type: "project_added",
+      description: `New project added: ${p.title}`,
+    });
   },
 
   updateProject: (id: string, updates: Partial<Project>) => {
     const projects = store.getProjects().map((p) =>
-      p.id === id ? { ...p, ...updates, updatedAt: now() } : p
+      p.id === id
+        ? {
+            ...p,
+            ...updates,
+            updatedAt: now(),
+          }
+        : p
     );
+
     store.setProjects(projects);
-    const title = store.getProjects().find((p) => p.id === id)?.title ?? id;
-    store.addActivity({ type: "project_updated", description: `Project updated: ${title}` });
+
+    const title =
+      store.getProjects().find((p) => p.id === id)?.title ?? id;
+
+    store.addActivity({
+      type: "project_updated",
+      description: `Project updated: ${title}`,
+    });
   },
 
   deleteProject: (id: string) => {
     const projects = store.getProjects();
-    const title = projects.find((p) => p.id === id)?.title ?? id;
-    store.setProjects(projects.filter((p) => p.id !== id));
-    store.addActivity({ type: "project_deleted", description: `Project deleted: ${title}` });
+
+    const title =
+      projects.find((p) => p.id === id)?.title ?? id;
+
+    store.setProjects(
+      projects.filter((p) => p.id !== id)
+    );
+
+    store.addActivity({
+      type: "project_deleted",
+      description: `Project deleted: ${title}`,
+    });
   },
 
   // Quotes
-  getQuotes: (): QuoteRequest[] => safeParse<QuoteRequest[]>(K.quotes, []),
-  setQuotes: (q: QuoteRequest[]) => localStorage.setItem(K.quotes, JSON.stringify(q)),
+  getQuotes: (): QuoteRequest[] =>
+    safeParse<QuoteRequest[]>(K.quotes, []),
 
-  updateQuoteStatus: (id: string, status: QuoteRequest["status"]) => {
-    store.setQuotes(store.getQuotes().map((q) => (q.id === id ? { ...q, status } : q)));
+  setQuotes: (q: QuoteRequest[]) =>
+    localStorage.setItem(K.quotes, JSON.stringify(q)),
+
+  updateQuoteStatus: (
+    id: string,
+    status: QuoteRequest["status"]
+  ) => {
+    store.setQuotes(
+      store
+        .getQuotes()
+        .map((q) =>
+          q.id === id
+            ? {
+                ...q,
+                status,
+              }
+            : q
+        )
+    );
   },
 
   deleteQuote: (id: string) => {
-    store.setQuotes(store.getQuotes().filter((q) => q.id !== id));
+    store.setQuotes(
+      store
+        .getQuotes()
+        .filter((q) => q.id !== id)
+    );
   },
 
   // Settings
   getSettings: (): SiteSettings => ({
     ...DEFAULT_SETTINGS,
-    ...safeParse<Partial<SiteSettings>>(K.settings, {}),
+    ...safeParse<Partial<SiteSettings>>(
+      K.settings,
+      {}
+    ),
   }),
+
   setSettings: (s: SiteSettings) => {
-    localStorage.setItem(K.settings, JSON.stringify(s));
-    store.addActivity({ type: "settings_updated", description: "Business settings updated" });
+    localStorage.setItem(
+      K.settings,
+      JSON.stringify(s)
+    );
+
+    store.addActivity({
+      type: "settings_updated",
+      description: "Business settings updated",
+    });
   },
 
   // Activity
-  getActivity: (): ActivityLog[] => safeParse<ActivityLog[]>(K.activity, []),
-  addActivity: (log: Omit<ActivityLog, "id" | "timestamp">) => {
+  getActivity: (): ActivityLog[] =>
+    safeParse<ActivityLog[]>(
+      K.activity,
+      []
+    ),
+
+  addActivity: (
+    log: Omit<ActivityLog, "id" | "timestamp">
+  ) => {
     const logs = store.getActivity();
-    const entry: ActivityLog = { ...log, id: `act-${uid()}`, timestamp: now() };
-    localStorage.setItem(K.activity, JSON.stringify([entry, ...logs].slice(0, 100)));
+
+    const entry: ActivityLog = {
+      ...log,
+      id: `act-${uid()}`,
+      timestamp: now(),
+    };
+
+    localStorage.setItem(
+      K.activity,
+      JSON.stringify(
+        [entry, ...logs].slice(0, 100)
+      )
+    );
   },
 
   // Initialization
-  isInitialized: () => !!localStorage.getItem(K.initialized),
-  markInitialized: () => localStorage.setItem(K.initialized, "1"),
+  isInitialized: () =>
+    !!localStorage.getItem(
+      K.initialized
+    ),
+
+  markInitialized: () =>
+    localStorage.setItem(
+      K.initialized,
+      "1"
+    ),
 };
 
 // ── PUBLIC SITE HELPERS ───────────────────────────────────────────────────────
+// Temporary local versions.
+// These will be changed to Supabase after the admin dashboard is connected.
 
 export const getPublicProjects = (): Project[] =>
-  store.getProjects().filter((p) => p.published && p.status === "published");
+  store
+    .getProjects()
+    .filter(
+      (p) =>
+        p.published &&
+        p.status === "published"
+    );
 
 export const getHomepageProjects = (): Project[] =>
-  store.getProjects().filter((p) => p.published && p.featured && p.showOnHomepage && p.status === "published");
+  store
+    .getProjects()
+    .filter(
+      (p) =>
+        p.published &&
+        p.featured &&
+        p.showOnHomepage &&
+        p.status === "published"
+    );
