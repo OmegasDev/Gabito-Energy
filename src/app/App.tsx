@@ -215,7 +215,7 @@ function Header({ page, nav }: { page: Page; nav: (p: Page) => void }) {
             onClick={() => nav("quote")}
             className="hidden sm:flex items-center gap-1.5 bg-[#15803D] hover:bg-[#166534] text-white text-[13px] font-bold px-4 py-2 rounded-lg transition-colors shadow-sm"
           >
-            Get Free Quote
+            Get Quote
           </button>
           <button
             onClick={goAdmin}
@@ -492,7 +492,7 @@ useEffect(() => {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="inline-flex items-center gap-2 bg-[#15803D]/25 border border-[#15803D]/40 text-green-300 text-[11px] font-semibold tracking-[0.14em] uppercase px-4 py-1.5 rounded-full mb-7"
           >
-            <Sun className="w-3.5 h-3.5" />
+            
             Nigeria's Trusted Solar Experts · Nnewi, Anambra
           </motion.span>
 
@@ -538,7 +538,7 @@ useEffect(() => {
               onClick={() => nav("quote")}
               className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[#15803D] hover:bg-[#166534] text-white font-bold px-8 py-4 rounded-xl text-base transition-all hover:scale-[1.02] shadow-lg shadow-green-950/40"
             >
-              Get Free Solar Assessment
+              Get Solar Assessment
               <ArrowRight className="w-5 h-5" />
             </button>
             <a
