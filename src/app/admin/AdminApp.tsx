@@ -1796,64 +1796,269 @@ function SiteMgrPage() {
 function SettPage() {
   const [settings, setSettings] = useState<SiteSettings>(store.getSettings);
   const [saved, setSaved] = useState(false);
-  const set = (k: keyof SiteSettings) => (v: string) => setSettings((s) => ({ ...s, [k]: v }));
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
-  const submit = (e: React.FormEvent) => {
+  const set = (k: keyof SiteSettings) => (v: string) =>
+    setSettings((s) => ({ ...s, [k]: v }));
+
+  // Load settings from Supabase
+  useEffect(() => {
+    const loadSettings = async () => {
+      setLoading(true);
+      setError("");
+
+      const { data, error } = await supabase
+        .from("site_settings")
+        .select("*")
+        .limit(1)
+        .maybeSingle();
+
+      if (error) {
+        console.error("Failed to load settings:", error);
+        setError("Failed to load settings from Supabase.");
+        setLoading(false);
+        return;
+      }
+
+      if (data) {
+        setSettings({
+          businessPhone: data.business_phone || "",
+          whatsapp: data.whatsapp || "",
+          email: data.email || "",
+          address: data.address || "",
+          hours: data.hours || "",
+          googleMaps: data.google_maps || "",
+          facebook: data.facebook || "",
+          instagram: data.instagram || "",
+          linkedin: data.linkedin || "",
+        });
+      }
+
+      setLoading(false);
+    };
+
+    loadSettings();
+  }, []);
+
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    setSaving(true);
+    setSaved(false);
+    setError("");
+
+    const payload = {
+      business_phone: settings.businessPhone,
+      whatsapp: settings.whatsapp,
+      email: settings.email,
+      address: settings.address,
+      hours: settings.hours,
+      google_maps: settings.googleMaps,
+      facebook: settings.facebook,
+      instagram: settings.instagram,
+      linkedin: settings.linkedin,
+      updated_at: new Date().toISOString(),
+    };
+
+    // Check whether the single settings row already exists
+    const { data: existing, error: fetchError } = await supabase
+      .from("site_settings")
+      .select("id")
+      .limit(1)
+      .maybeSingle();
+
+    if (fetchError) {
+      console.error("Failed to check settings:", fetchError);
+      setError("Failed to save settings.");
+      setSaving(false);
+      return;
+    }
+
+    let saveError;
+
+    if (existing) {
+      // Update existing settings row
+      const { error } = await supabase
+        .from("site_settings")
+        .update(payload)
+        .eq("id", existing.id);
+
+      saveError = error;
+    } else {
+      // Create the first settings row
+      const { error } = await supabase
+        .from("site_settings")
+        .insert(payload);
+
+      saveError = error;
+    }
+
+    if (saveError) {
+      console.error("Failed to save settings:", saveError);
+      setError("Failed to save settings. Please try again.");
+      setSaving(false);
+      return;
+    }
+
+    // Keep the old local store in sync too
     store.setSettings(settings);
+
     setSaved(true);
+    setSaving(false);
+
     setTimeout(() => setSaved(false), 3000);
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center gap-2 text-gray-500 py-8">
+        <RefreshCw className="w-4 h-4 animate-spin" />
+        Loading settings...
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={submit} className="space-y-6 max-w-2xl">
       {/* Contact */}
       <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-        <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2"><Phone className="w-4 h-4 text-[#15803D]" /> Contact Information</h3>
+        <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <Phone className="w-4 h-4 text-[#15803D]" />
+          Contact Information
+        </h3>
+
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Input label="Business Phone" value={settings.businessPhone} onChange={set("businessPhone")} placeholder="+2348109946212" />
-            <Input label="WhatsApp Number" value={settings.whatsapp} onChange={set("whatsapp")} placeholder="2348109946212 (no +)" />
+            <Input
+              label="Business Phone"
+              value={settings.businessPhone}
+              onChange={set("businessPhone")}
+              placeholder="+2348109946212"
+            />
+
+            <Input
+              label="WhatsApp Number"
+              value={settings.whatsapp}
+              onChange={set("whatsapp")}
+              placeholder="2348109946212 (no +)"
+            />
           </div>
-          <Input label="Email Address" value={settings.email} onChange={set("email")} type="email" placeholder="info@gabitoenergy.com" />
+
+          <Input
+            label="Email Address"
+            value={settings.email}
+            onChange={set("email")}
+            type="email"
+            placeholder="info@gabitoenergy.com"
+          />
         </div>
       </div>
 
       {/* Location */}
       <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-        <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2"><MapPin className="w-4 h-4 text-[#15803D]" /> Location & Hours</h3>
+        <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <MapPin className="w-4 h-4 text-[#15803D]" />
+          Location & Hours
+        </h3>
+
         <div className="space-y-4">
-          <Textarea label="Office Address" value={settings.address} onChange={set("address")} rows={2} />
-          <Input label="Business Hours" value={settings.hours} onChange={set("hours")} placeholder="Monday – Saturday: 8:00 AM – 6:00 PM" />
-          <Input label="Google Maps Embed URL" value={settings.googleMaps} onChange={set("googleMaps")} placeholder="https://maps.google.com/..." />
+          <Textarea
+            label="Office Address"
+            value={settings.address}
+            onChange={set("address")}
+            rows={2}
+          />
+
+          <Input
+            label="Business Hours"
+            value={settings.hours}
+            onChange={set("hours")}
+            placeholder="Monday – Saturday: 8:00 AM – 6:00 PM"
+          />
+
+          <Input
+            label="Google Maps Embed URL"
+            value={settings.googleMaps}
+            onChange={set("googleMaps")}
+            placeholder="https://maps.google.com/..."
+          />
         </div>
       </div>
 
       {/* Social */}
       <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-        <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2"><Globe className="w-4 h-4 text-[#15803D]" /> Social Media</h3>
+        <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <Globe className="w-4 h-4 text-[#15803D]" />
+          Social Media
+        </h3>
+
         <div className="space-y-4">
-          <Input label="Facebook Page URL" value={settings.facebook} onChange={set("facebook")} placeholder="https://facebook.com/gabitoenergy" />
-          <Input label="Instagram Profile URL" value={settings.instagram} onChange={set("instagram")} placeholder="https://instagram.com/gabitoenergy" />
-          <Input label="LinkedIn Page URL" value={settings.linkedin} onChange={set("linkedin")} placeholder="https://linkedin.com/company/gabitoenergy" />
+          <Input
+            label="Facebook Page URL"
+            value={settings.facebook}
+            onChange={set("facebook")}
+            placeholder="https://facebook.com/gabitoenergy"
+          />
+
+          <Input
+            label="Instagram Profile URL"
+            value={settings.instagram}
+            onChange={set("instagram")}
+            placeholder="https://instagram.com/gabitoenergy"
+          />
+
+          <Input
+            label="LinkedIn Page URL"
+            value={settings.linkedin}
+            onChange={set("linkedin")}
+            placeholder="https://linkedin.com/company/gabitoenergy"
+          />
         </div>
       </div>
 
+      {/* Save */}
       <div className="flex items-center gap-4">
-        <button type="submit"
-          className="flex items-center gap-2 bg-[#15803D] hover:bg-[#166534] text-white font-bold px-8 py-3.5 rounded-xl transition-colors">
-          <Check className="w-4 h-4" /> Save Settings
+        <button
+          type="submit"
+          disabled={saving}
+          className="flex items-center gap-2 bg-[#15803D] hover:bg-[#166534] disabled:opacity-60 text-white font-bold px-8 py-3.5 rounded-xl transition-colors"
+        >
+          {saving ? (
+            <>
+              <RefreshCw className="w-4 h-4 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            <>
+              <Check className="w-4 h-4" />
+              Save Settings
+            </>
+          )}
         </button>
+
         {saved && (
-          <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-green-600 text-sm font-semibold flex items-center gap-1.5">
-            <Check className="w-4 h-4" /> Settings saved successfully
+          <motion.span
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-green-600 text-sm font-semibold flex items-center gap-1.5"
+          >
+            <Check className="w-4 h-4" />
+            Settings saved successfully
           </motion.span>
+        )}
+
+        {error && (
+          <span className="text-red-600 text-sm font-semibold flex items-center gap-1.5">
+            <AlertCircle className="w-4 h-4" />
+            {error}
+          </span>
         )}
       </div>
     </form>
   );
 }
-
 // ── TECH DOCS PAGE ─────────────────────────────────────────────────────────────
 
 function TechPage() {

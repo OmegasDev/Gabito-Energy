@@ -2011,10 +2011,53 @@ function QuotePage() {
 
 // ── FOOTER ───────────────────────────────────────────────────────────────────
 function Footer({ nav }: { nav: (p: Page) => void }) {
+  const [settings, setSettings] = useState<SiteSettings | null>(null);
+
+  useEffect(() => {
+    const loadSettings = async () => {
+      const { data, error } = await supabase
+        .from("site_settings")
+        .select("*")
+        .limit(1)
+        .maybeSingle();
+
+      if (error) {
+        console.error("Failed to load footer settings:", error);
+        return;
+      }
+
+      if (data) {
+        setSettings({
+          businessPhone: data.business_phone || "",
+          whatsapp: data.whatsapp || "",
+          email: data.email || "",
+          address: data.address || "",
+          hours: data.hours || "",
+          googleMaps: data.google_maps || "",
+          facebook: data.facebook || "",
+          instagram: data.instagram || "",
+          linkedin: data.linkedin || "",
+        });
+      }
+    };
+
+    loadSettings();
+  }, []);
+
+  // Use Supabase values, with the old values as fallback
+  const address = settings?.address || ADDRESS;
+  const phone = settings?.businessPhone || PHONE1;
+  const whatsapp = settings?.whatsapp || "";
+  const whatsappLink = whatsapp
+    ? `https://wa.me/${whatsapp.replace(/\D/g, "")}`
+    : wa();
+
   return (
     <footer className="bg-[#0D1117]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-16 pb-8">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 pb-10 border-b border-white/[0.07]">
+
+          {/* Brand */}
           <div>
             <div className="flex items-center gap-2.5 mb-5">
               <div className="w-10 h-10 rounded-lg bg-[#15803D] py-0.5 overflow-hidden shadow-sm flex items-center justify-center">
@@ -2024,6 +2067,7 @@ function Footer({ nav }: { nav: (p: Page) => void }) {
                   className="w-full h-full object-cover"
                 />
               </div>
+
               <div>
                 <div className="text-white font-bold text-sm">
                   Gabito Energy
@@ -2033,25 +2077,33 @@ function Footer({ nav }: { nav: (p: Page) => void }) {
                 </div>
               </div>
             </div>
+
             <p className="text-[13px] leading-relaxed text-gray-500 mb-5">
-              Smarter Energy Solutions. Solar systems, inverters, batteries, and
-              CCTV for homes and businesses across Nigeria.
+              Smarter Energy Solutions. Solar systems, inverters, batteries,
+              and CCTV for homes and businesses across Nigeria.
             </p>
+
             <a
-              href={wa()}
+              href={whatsappLink}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 bg-[#25D366]/15 text-[#25D366] text-[13px] font-semibold px-4 py-2 rounded-lg hover:bg-[#25D366]/25 transition-colors"
             >
-              <img src={whatsappIcon} alt="WhatsApp" className="w-8 h-6" /> Chat
-              on WhatsApp
+              <img
+                src={whatsappIcon}
+                alt="WhatsApp"
+                className="w-8 h-6"
+              />
+              Chat on WhatsApp
             </a>
           </div>
 
+          {/* Services */}
           <div>
             <h4 className="text-white font-semibold text-[13px] mb-4">
               Services
             </h4>
+
             <ul className="space-y-2.5">
               {[
                 ["Solar Installation", "solar"],
@@ -2072,10 +2124,12 @@ function Footer({ nav }: { nav: (p: Page) => void }) {
             </ul>
           </div>
 
+          {/* Company */}
           <div>
             <h4 className="text-white font-semibold text-[13px] mb-4">
               Company
             </h4>
+
             <ul className="space-y-2.5">
               {[
                 ["Home", "home"],
@@ -2096,44 +2150,53 @@ function Footer({ nav }: { nav: (p: Page) => void }) {
             </ul>
           </div>
 
+          {/* Contact */}
           <div>
             <h4 className="text-white font-semibold text-[13px] mb-4">
               Contact
             </h4>
+
             <div className="space-y-3">
+
+              {/* Address */}
               <div className="flex gap-2.5">
                 <MapPin className="w-4 h-4 text-[#15803D] shrink-0 mt-0.5" />
+
                 <p className="text-gray-500 text-[13px] leading-relaxed">
-                  {ADDRESS}
+                  {address}
                 </p>
               </div>
+
+              {/* Phone */}
               <div className="flex gap-2.5">
                 <Phone className="w-4 h-4 text-[#15803D] shrink-0" />
+
                 <div>
-                  <a
-                    href={`tel:${PHONE1}`}
-                    className="text-gray-500 hover:text-white text-[13px] block transition-colors"
-                  >
-                    {PHONE1}
-                  </a>
-                  <a
-                    href={`tel:${PHONE2}`}
-                    className="text-gray-500 hover:text-white text-[13px] block transition-colors"
-                  >
-                    {PHONE2}
-                  </a>
+                  {phone && (
+                    <a
+                      href={`tel:${phone}`}
+                      className="text-gray-500 hover:text-white text-[13px] block transition-colors"
+                    >
+                      {phone}
+                    </a>
+                  )}
                 </div>
               </div>
+
             </div>
           </div>
         </div>
 
+        {/* Bottom */}
         <div className="pt-6 flex flex-col sm:flex-row justify-between items-center gap-2 text-[12px] text-gray-600">
           <p>
             © {new Date().getFullYear()} Gabito Energy Solution. All rights
             reserved.
           </p>
-          <p>Nnewi, Anambra State, Nigeria · Nationwide Delivery</p>
+
+          <p>
+            {address || "Nigeria"} · Nationwide Delivery
+          </p>
         </div>
       </div>
     </footer>
