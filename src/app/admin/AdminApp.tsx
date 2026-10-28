@@ -14,7 +14,7 @@ import {
   AlertCircle, Camera, Building2, ChevronDown,
   ChevronRight, RefreshCw, Eye as EyeIcon, EyeOff,
   Upload, Link, ToggleLeft, ToggleRight, Filter,
-  FileText, Database, Layers, GitBranch, Terminal,
+  FileText, Database, Layers, GitBranch, Terminal, ShoppingBag,
 } from "lucide-react";
 
 import {
@@ -46,7 +46,7 @@ import { Download } from "lucide-react";
 
 const PASSKEY = (import.meta as any).env?.VITE_ADMIN_PASSKEY ?? "Gabito@2024";
 
-type AdminPage = "dashboard" | "projects" | "quotes" | "health" | "site-manager" | "settings" | "docs";
+type AdminPage = "dashboard" | "projects" | "store" | "quotes" | "health" | "site-manager" | "settings" | "docs";
 
 // ── SEED DATA ─────────────────────────────────────────────────────────────────
 
@@ -343,6 +343,7 @@ function AdminLogin({ onAuth }: { onAuth: () => void }) {
 const NAV_ITEMS: { page: AdminPage; label: string; icon: React.ElementType }[] = [
   { page: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { page: "projects", label: "Projects", icon: FolderOpen },
+  { page: "store", label: "Store Products", icon: ShoppingBag },
   { page: "quotes", label: "Quote Requests", icon: MessageSquare },
   { page: "health", label: "Website Health", icon: Activity },
   { page: "site-manager", label: "Site Manager", icon: Globe },
@@ -463,6 +464,7 @@ const handleInstall = async () => {
   const PAGE_TITLES: Record<AdminPage, string> = {
     dashboard: "Dashboard",
     projects: "Project Management",
+    store: "Store Products",
     quotes: "Quote Requests",
     health: "Website Health",
     "site-manager": "Site Manager",
@@ -547,26 +549,6 @@ function DashPage({ setPage }: { setPage: (p: AdminPage) => void }) {
   const activity = store.getActivity();
   const published = projects.filter((p) => p.published).length;
   const pending = quotes.filter((q) => q.status === "new").length;
-
-  const handleInstall = async () => {
-  console.log("Deferred Prompt:", deferredPrompt);
-
-  if (!deferredPrompt) {
-    alert("App is not installable yet.");
-    return;
-  }
-
-  deferredPrompt.prompt();
-
-  const { outcome } = await deferredPrompt.userChoice;
-
-  console.log("Install outcome:", outcome);
-
-  if (outcome === "accepted") {
-    setDeferredPrompt(null);
-    setCanInstall(false);
-  }
-};
 
   return (
     <div className="space-y-6">
@@ -2400,6 +2382,289 @@ Key dependencies:
   );
 }
 
+
+// ── STORE PRODUCTS PAGE ───────────────────────────────────────────────────────
+
+type StoreProduct = {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  image_url: string;
+  published: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+const EMPTY_PRODUCT = {
+  name: "",
+  description: "",
+  price: "",
+  image_url: "",
+  published: true,
+};
+
+function formatNaira(value: number) {
+  return new Intl.NumberFormat("en-NG", {
+    style: "currency",
+    currency: "NGN",
+    maximumFractionDigits: 0,
+  }).format(value || 0);
+}
+
+function StorePage() {
+  const [products, setProducts] = useState<StoreProduct[]>([]);
+  const [form, setForm] = useState({ ...EMPTY_PRODUCT });
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const productImageRef = useRef<HTMLInputElement>(null);
+
+  const loadProducts = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    const { data, error: queryError } = await supabase
+      .from("products")
+      .select("*")
+      .order("updated_at", { ascending: false });
+
+    if (queryError) {
+      console.error("Failed to load products:", queryError);
+      setError(`Could not load products: ${queryError.message}`);
+      setProducts([]);
+    } else {
+      setProducts((data ?? []) as StoreProduct[]);
+    }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    void loadProducts();
+  }, [loadProducts]);
+
+  const resetForm = () => {
+    setForm({ ...EMPTY_PRODUCT });
+    setEditingId(null);
+    setError("");
+    setUploadingImage(false);
+    if (productImageRef.current) productImageRef.current.value = "";
+  };
+
+  const editProduct = (product: StoreProduct) => {
+    setEditingId(product.id);
+    setForm({
+      name: product.name ?? "",
+      description: product.description ?? "",
+      price: String(product.price ?? 0),
+      image_url: product.image_url ?? "",
+      published: Boolean(product.published),
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleProductImage = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setError("Please choose an image file.");
+      event.target.value = "";
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setError("Image must be smaller than 10MB.");
+      event.target.value = "";
+      return;
+    }
+
+    setUploadingImage(true);
+    setError("");
+    try {
+      const safeName = file.name.toLowerCase().replace(/[^a-z0-9.-]/g, "-");
+      const path = `products/${Date.now()}-${safeName}`;
+      // Reuse the existing public image bucket already used by project uploads.
+      const { error: uploadError } = await supabase.storage
+        .from("project-images")
+        .upload(path, file, { cacheControl: "3600", upsert: false });
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage.from("project-images").getPublicUrl(path);
+      if (!data?.publicUrl) throw new Error("Could not create a public image URL.");
+
+      setForm((current) => ({ ...current, image_url: data.publicUrl }));
+    } catch (uploadError) {
+      console.error("Product image upload failed:", uploadError);
+      setError(`Image upload failed: ${uploadError instanceof Error ? uploadError.message : "Please try again."}`);
+    } finally {
+      setUploadingImage(false);
+      event.target.value = "";
+    }
+  };
+
+  const saveProduct = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError("");
+    if (uploadingImage) {
+      setError("Wait for the image upload to finish.");
+      return;
+    }
+
+    const price = Number(form.price);
+    if (!form.name.trim()) {
+      setError("Enter a product name.");
+      return;
+    }
+    if (!Number.isFinite(price) || price < 0) {
+      setError("Enter a valid price.");
+      return;
+    }
+    const payload = {
+      name: form.name.trim(),
+      description: form.description.trim(),
+      price,
+      image_url: form.image_url.trim(),
+      published: form.published,
+      updated_at: new Date().toISOString(),
+    };
+
+    setSaving(true);
+    const result = editingId
+      ? await supabase.from("products").update(payload).eq("id", editingId)
+      : await supabase.from("products").insert(payload);
+
+    if (result.error) {
+      console.error("Failed to save product:", result.error);
+      setError(`Could not save product: ${result.error.message}`);
+    } else {
+      resetForm();
+      await loadProducts();
+    }
+    setSaving(false);
+  };
+
+  const deleteProduct = async (product: StoreProduct) => {
+    if (!window.confirm(`Delete “${product.name}”? This cannot be undone.`)) return;
+    setError("");
+    const { error: deleteError } = await supabase
+      .from("products")
+      .delete()
+      .eq("id", product.id);
+    if (deleteError) {
+      setError(`Could not delete product: ${deleteError.message}`);
+      return;
+    }
+    if (editingId === product.id) resetForm();
+    await loadProducts();
+  };
+
+  const filteredProducts = products.filter((product) =>
+    `${product.name} ${product.description}`.toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-extrabold text-gray-900">Store Products</h2>
+          <p className="text-sm text-gray-500 mt-1">Add products to your website and manage which ones are public.</p>
+        </div>
+        <button
+          type="button"
+          onClick={loadProducts}
+          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 border border-gray-200 rounded-xl bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50"
+        >
+          <RefreshCw className="w-4 h-4" /> Refresh products
+        </button>
+      </div>
+
+      <form onSubmit={saveProduct} className="bg-white rounded-2xl p-5 sm:p-6 border border-gray-100 shadow-sm space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="font-bold text-gray-900">{editingId ? "Edit product" : "Add a product"}</h3>
+          {editingId && <button type="button" onClick={resetForm} className="text-sm text-gray-500 hover:text-gray-900">Cancel edit</button>}
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Input label="Product name" value={form.name} onChange={(value) => setForm((f) => ({ ...f, name: value }))} required placeholder="e.g. 5kVA Hybrid Inverter" />
+          <Input label="Price (₦)" value={form.price} onChange={(value) => setForm((f) => ({ ...f, price: value }))} type="number" required placeholder="250000" />
+        </div>
+        <Textarea label="Description" value={form.description} onChange={(value) => setForm((f) => ({ ...f, description: value }))} rows={3} placeholder="Short product details (optional)" />
+        <div>
+          <label className="block text-xs font-semibold text-gray-600 mb-1.5">Product image</label>
+          <div className="flex flex-col sm:flex-row items-start gap-4">
+            <div className="w-32 h-28 rounded-xl border border-gray-200 overflow-hidden bg-gray-50 flex items-center justify-center shrink-0">
+              {form.image_url ? (
+                <img src={form.image_url} alt="Product preview" className="w-full h-full object-cover" />
+              ) : (
+                <ShoppingBag className="w-8 h-8 text-gray-300" />
+              )}
+            </div>
+            <div className="space-y-2">
+              <input
+                ref={productImageRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                onChange={handleProductImage}
+                disabled={uploadingImage || saving}
+                className="block w-full max-w-xs text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-green-50 file:px-4 file:py-2.5 file:font-semibold file:text-green-700 hover:file:bg-green-100"
+              />
+              <p className="text-xs text-gray-400">Choose an image from your device (PNG, JPG, WEBP or GIF; max 10MB).</p>
+              {uploadingImage && <p className="text-xs text-[#15803D] flex items-center gap-2"><RefreshCw className="w-3.5 h-3.5 animate-spin" /> Uploading image…</p>}
+              {form.image_url && <button type="button" onClick={() => setForm((f) => ({ ...f, image_url: "" }))} className="text-xs font-semibold text-red-600 hover:text-red-700">Remove image</button>}
+            </div>
+          </div>
+        </div>
+        <Toggle label="Publish product" checked={form.published} onChange={(value) => setForm((f) => ({ ...f, published: value }))} desc="Published products can appear on the public store." />
+        {error && <p role="alert" className="text-sm text-red-600 bg-red-50 rounded-xl p-3">{error}</p>}
+        <button type="submit" disabled={saving || uploadingImage} className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#15803D] hover:bg-[#166534] text-white text-sm font-bold disabled:opacity-60">
+          {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+          {uploadingImage ? "Uploading image…" : saving ? "Saving…" : editingId ? "Save changes" : "Add product"}
+        </button>
+      </form>
+
+      <section className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="p-4 sm:p-5 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h3 className="font-bold text-gray-900">All products <span className="text-gray-400 font-medium">({products.length})</span></h3>
+            <p className="text-xs text-gray-500 mt-1">Newest updated products appear first.</p>
+          </div>
+          <div className="relative w-full sm:max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search products…" className="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#15803D]/20" />
+          </div>
+        </div>
+        {loading ? (
+          <div className="p-10 text-center text-sm text-gray-500"><RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2" />Loading products…</div>
+        ) : filteredProducts.length === 0 ? (
+          <div className="p-10 text-center"><ShoppingBag className="w-8 h-8 text-gray-300 mx-auto mb-3" /><p className="text-sm font-semibold text-gray-700">No products found</p><p className="text-xs text-gray-400 mt-1">Add your first product using the form above.</p></div>
+        ) : (
+          <div className="divide-y divide-gray-100">
+            {filteredProducts.map((product) => (
+              <div key={product.id} className="p-4 sm:p-5 flex items-center gap-3 sm:gap-4">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-gray-100 overflow-hidden shrink-0 flex items-center justify-center">
+                  {product.image_url ? <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" /> : <ShoppingBag className="w-6 h-6 text-gray-300" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-sm text-gray-900 truncate">{product.name}</p>
+                  <p className="font-semibold text-sm text-[#15803D] mt-1">{formatNaira(Number(product.price))}</p>
+                  <p className="text-xs text-gray-400 mt-1">Updated {fmtDate(product.updated_at)} · {product.published ? "Published" : "Draft"}</p>
+                  {product.description && <p className="text-xs text-gray-500 mt-1 line-clamp-2">{product.description}</p>}
+                </div>
+                <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+                  <button type="button" onClick={() => editProduct(product)} className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 text-xs font-semibold hover:bg-gray-50"><Edit2 className="w-3.5 h-3.5" /> Edit</button>
+                  <button type="button" onClick={() => void deleteProduct(product)} className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-red-100 text-red-600 text-xs font-semibold hover:bg-red-50"><Trash2 className="w-3.5 h-3.5" /> Delete</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
 // ── MAIN ADMIN APP ────────────────────────────────────────────────────────────
 
 export function AdminApp() {
@@ -2427,6 +2692,7 @@ export function AdminApp() {
     <AdminLayout page={page} setPage={setPage}>
       {page === "dashboard" && <DashPage setPage={setPage} />}
       {page === "projects" && <ProjPage />}
+      {page === "store" && <StorePage />}
       {page === "quotes" && <QuotePage />}
       {page === "health" && <HealthPage />}
       {page === "site-manager" && <SiteMgrPage />}
@@ -2435,3 +2701,4 @@ export function AdminApp() {
     </AdminLayout>
   );
 }
+

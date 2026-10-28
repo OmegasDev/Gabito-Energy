@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { motion } from "motion/react";
 import { supabase } from "./../lib/supabase";
@@ -6,8 +7,8 @@ import {
   getProjectsFromSupabase,
   type Project as AdminProject,
 } from "./admin/store";
+
 import {
-  Sun,
   Battery,
   Zap,
   Shield,
@@ -20,29 +21,17 @@ import {
   CheckCircle,
   ArrowRight,
   Camera,
-  Wrench,
-  BookOpen,
   Settings,
-  Users,
-  Award,
-  Clock,
   Home,
   Building2,
-  LogOut,
   Lock,
+  Clock,
 } from "lucide-react";
+
 import { ImageWithFallback } from "@/app/components/figma/ImageWithFallback";
 
-import img1 from "../imports/IMG-20260616-WA0002.jpg";
-import img2 from "../imports/IMG-20260616-WA0002_1_.jpg";
-import img3 from "../imports/IMG-20260616-WA0004.jpg";
-import img4 from "../imports/IMG-20260616-WA0008.jpg";
-import img5 from "../imports/IMG-20260616-WA0010.jpg";
-import img6 from "../imports/IMG-20260616-WA0011.jpg";
 import gabitoLogo from "../imports/gabito-logo.png";
 import whatsappIcon from "../imports/whatsapp-icon.png";
-import img7 from "../imports/IMG-20260623-WA0009.jpg";
-import img8 from "../imports/IMG-20260623-WA0011.jpg";
 
 type Page =
   | "home"
@@ -53,6 +42,7 @@ type Page =
   | "faq"
   | "contact"
   | "quote"
+  | "store"
   | "admin";
 
 const WA = "2348109946212";
@@ -63,6 +53,8 @@ const ADDRESS = "140 Old Onitsha Road, Nnewi, Beside Nenco Filling Station";
 function wa(msg = "Hello! I'm interested in your solar solutions.") {
   return `https://wa.me/${WA}?text=${encodeURIComponent(msg)}`;
 }
+
+// ── REVEAL ANIMATION ────────────────────────────────────────────────────────
 
 function Reveal({
   children,
@@ -78,7 +70,11 @@ function Reveal({
       initial={{ opacity: 0, y: 28 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-50px" }}
-      transition={{ duration: 0.6, delay, ease: [0.22, 1, 0.36, 1] }}
+      transition={{
+        duration: 0.6,
+        delay,
+        ease: [0.22, 1, 0.36, 1],
+      }}
       className={className}
     >
       {children}
@@ -86,26 +82,43 @@ function Reveal({
   );
 }
 
+// ── COUNT UP ─────────────────────────────────────────────────────────────────
+
 function useCountUp(target: number, triggered: boolean) {
   const [count, setCount] = useState(0);
+
   useEffect(() => {
     if (!triggered) return;
+
     let n = 0;
     const step = target / 120;
+
     const t = setInterval(() => {
       n += step;
+
       if (n >= target) {
         setCount(target);
         clearInterval(t);
-      } else setCount(Math.floor(n));
+      } else {
+        setCount(Math.floor(n));
+      }
     }, 16);
+
     return () => clearInterval(t);
   }, [triggered, target]);
+
   return count;
 }
 
-// ── HEADER ──────────────────────────────────────────────────────────────────
-function Header({ page, nav }: { page: Page; nav: (p: Page) => void }) {
+// ── HEADER ───────────────────────────────────────────────────────────────────
+
+function Header({
+  page,
+  nav,
+}: {
+  page: Page;
+  nav: (p: Page) => void;
+}) {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
 
@@ -116,7 +129,9 @@ function Header({ page, nav }: { page: Page; nav: (p: Page) => void }) {
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 56);
+
     window.addEventListener("scroll", fn);
+
     return () => window.removeEventListener("scroll", fn);
   }, []);
 
@@ -130,10 +145,9 @@ function Header({ page, nav }: { page: Page; nav: (p: Page) => void }) {
     { label: "Projects", page: "projects" },
     { label: "About", page: "about" },
     { label: "FAQ", page: "faq" },
+    { label: "Store", page: "store" },
     { label: "Contact", page: "contact" },
   ];
-
- 
 
   return (
     <header
@@ -144,7 +158,9 @@ function Header({ page, nav }: { page: Page; nav: (p: Page) => void }) {
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
-        {/* Logo */}
+
+        {/* LOGO */}
+
         <button
           onClick={() => {
             nav("home");
@@ -152,28 +168,35 @@ function Header({ page, nav }: { page: Page; nav: (p: Page) => void }) {
           }}
           className="flex items-center gap-2.5 shrink-0"
         >
-           <div className="w-10 h-10 rounded-lg  py-0.5 overflow-hidden shadow-sm flex items-center justify-center">
-                <img
-                  src={gabitoLogo}
-                  alt="Gabito Energy Logo"
-                  className="w-full h-full object-cover"
-                />
-              </div>
+          <div className="w-10 h-10 rounded-lg py-0.5 overflow-hidden shadow-sm flex items-center justify-center">
+            <img
+              src={gabitoLogo}
+              alt="Gabito Energy Logo"
+              className="w-full h-full object-cover"
+            />
+          </div>
+
           <div className="leading-none">
             <div
-              className={`text-sm font-bold tracking-tight ${solid ? "text-gray-900" : "text-white"}`}
+              className={`text-sm font-bold tracking-tight ${
+                solid ? "text-gray-900" : "text-white"
+              }`}
             >
               Gabito Energy
             </div>
+
             <div
-              className={`text-[9px] font-semibold tracking-[0.18em] uppercase ${solid ? "text-[#15803D]" : "text-green-300"}`}
+              className={`text-[9px] font-semibold tracking-[0.18em] uppercase ${
+                solid ? "text-[#15803D]" : "text-green-300"
+              }`}
             >
               Solution
             </div>
           </div>
         </button>
 
-        {/* Desktop Nav */}
+        {/* DESKTOP NAV */}
+
         <nav className="hidden lg:flex items-center gap-5">
           {links.map((l) => (
             <button
@@ -192,8 +215,10 @@ function Header({ page, nav }: { page: Page; nav: (p: Page) => void }) {
           ))}
         </nav>
 
-        {/* Actions */}
+        {/* ACTIONS */}
+
         <div className="flex items-center gap-2 shrink-0">
+
           <a
             href={wa()}
             target="_blank"
@@ -204,43 +229,43 @@ function Header({ page, nav }: { page: Page; nav: (p: Page) => void }) {
                 : "border-white/40 text-white hover:bg-white/10"
             }`}
           >
-           <img
-    src={whatsappIcon}
-    alt="WhatsApp"
-     className="w-8 h-6"
-  />
+            <img
+              src={whatsappIcon}
+              alt="WhatsApp"
+              className="w-8 h-6"
+            />
             WhatsApp
           </a>
+
           <button
             onClick={() => nav("quote")}
             className="hidden sm:flex items-center gap-1.5 bg-[#15803D] hover:bg-[#166534] text-white text-[13px] font-bold px-4 py-2 rounded-lg transition-colors shadow-sm"
           >
             Get Quote
           </button>
-          <button
-            onClick={goAdmin}
-            title="Admin Dashboard"
-            className={`hidden lg:flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-lg border transition-colors ${
-              solid
-                ? "border-gray-200 text-gray-500 hover:border-[#15803D] hover:text-[#15803D] hover:bg-green-50"
-                : "border-white/20 text-white/60 hover:text-white hover:bg-white/10"
-            }`}
-          >
-            <Lock className="w-3.5 h-3.5" />
-            Admin
-          </button>
+
+         
+
           <button
             onClick={() => setOpen(!open)}
-            className={`lg:hidden p-2 rounded-lg ${solid ? "text-gray-700" : "text-white"}`}
+            className={`lg:hidden p-2 rounded-lg ${
+              solid ? "text-gray-700" : "text-white"
+            }`}
           >
-            {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            {open ? (
+              <X className="w-5 h-5" />
+            ) : (
+              <Menu className="w-5 h-5" />
+            )}
           </button>
         </div>
       </div>
 
-      {/* Mobile menu */}
+      {/* MOBILE MENU */}
+
       {open && (
         <div className="lg:hidden bg-white border-t border-gray-100 shadow-lg">
+
           <div className="px-4 py-3 space-y-0.5">
             {links.map((l) => (
               <button
@@ -259,16 +284,11 @@ function Header({ page, nav }: { page: Page; nav: (p: Page) => void }) {
               </button>
             ))}
           </div>
-          <div className="px-4 py-2 border-t border-gray-100">
-            <button
-              onClick={goAdmin}
-              className="w-full flex items-center gap-2.5 px-4 py-3 rounded-xl text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors"
-            >
-              <Lock className="w-4 h-4 text-gray-400" />
-              Admin Dashboard
-            </button>
-          </div>
+
+         
+
           <div className="px-4 pb-4 pt-1 grid grid-cols-2 gap-2 border-t border-gray-100">
+
             <button
               onClick={() => {
                 nav("quote");
@@ -278,14 +298,17 @@ function Header({ page, nav }: { page: Page; nav: (p: Page) => void }) {
             >
               Get Free Quote
             </button>
+
             <a
               href={wa()}
               target="_blank"
               rel="noopener noreferrer"
               className="border border-[#15803D] text-[#15803D] text-sm font-semibold py-3 rounded-xl flex items-center justify-center gap-1.5"
             >
-              <MessageCircle className="w-4 h-4" /> WhatsApp
+              <MessageCircle className="w-4 h-4" />
+              WhatsApp
             </a>
+
           </div>
         </div>
       )}
@@ -293,7 +316,8 @@ function Header({ page, nav }: { page: Page; nav: (p: Page) => void }) {
   );
 }
 
-// ── WHATSAPP FAB ────────────────────────────────────────────────────────────
+// ── WHATSAPP FAB ─────────────────────────────────────────────────────────────
+
 function WAFab() {
   return (
     <a
@@ -301,14 +325,19 @@ function WAFab() {
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Chat on WhatsApp"
-      className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-[#cbd1cd] hover:bg-[#128C7E] rounded-full shadow-xl flex items-center justify-center transition-all hover:scale-110"
+      className="fixed bottom-26 right-6 z-50 w-14 h-14 bg-[#cbd1cd] hover:bg-[#128C7E] rounded-full shadow-xl flex items-center justify-center transition-all hover:scale-110"
     >
-      <img src={whatsappIcon} alt="WhatsApp" className="w-12 h-10" />
+      <img
+        src={whatsappIcon}
+        alt="WhatsApp"
+        className="w-12 h-10"
+      />
     </a>
   );
 }
 
-// ── FAQ ITEM ────────────────────────────────────────────────────────────────
+// ── FAQ ITEM ─────────────────────────────────────────────────────────────────
+
 function FAQItem({
   q,
   a,
@@ -319,9 +348,11 @@ function FAQItem({
   delay?: number;
 }) {
   const [open, setOpen] = useState(false);
+
   return (
     <Reveal delay={delay}>
       <div className="border border-gray-100 rounded-2xl overflow-hidden bg-white">
+
         <button
           onClick={() => setOpen(!open)}
           className="w-full flex items-center justify-between gap-4 px-6 py-5 text-left hover:bg-gray-50 transition-colors"
@@ -329,34 +360,49 @@ function FAQItem({
           <span className="font-semibold text-gray-900 text-sm leading-snug">
             {q}
           </span>
+
           <ChevronDown
-            className={`w-5 h-5 text-gray-400 shrink-0 transition-transform duration-300 ${open ? "rotate-180" : ""}`}
+            className={`w-5 h-5 text-gray-400 shrink-0 transition-transform duration-300 ${
+              open ? "rotate-180" : ""
+            }`}
           />
         </button>
+
         <div
           className="overflow-hidden transition-all duration-300"
-          style={{ maxHeight: open ? "200px" : "0px" }}
+          style={{
+            maxHeight: open ? "200px" : "0px",
+          }}
         >
-          <p className="px-6 pb-5 text-gray-500 text-sm leading-relaxed">{a}</p>
+          <p className="px-6 pb-5 text-gray-500 text-sm leading-relaxed">
+            {a}
+          </p>
         </div>
+
       </div>
     </Reveal>
   );
 }
 
-// ── HOME PAGE ────────────────────────────────────────────────────────────────
+// ── HOME PAGE ─────────────────────────────────────────────────────────────────
+
 function HomePage({ nav }: { nav: (p: Page) => void }) {
   const statsRef = useRef<HTMLDivElement>(null);
   const [statsOn, setStatsOn] = useState(false);
 
   useEffect(() => {
     const obs = new IntersectionObserver(
-      ([e]) => {
-        if (e.isIntersecting) setStatsOn(true);
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setStatsOn(true);
+          obs.disconnect();
+        }
       },
-      { threshold: 0.3 },
+      { threshold: 0.25 },
     );
-    if (statsRef.current) obs.observe(statsRef.current);
+
+    if (statsRef.current) statsRef.current && obs.observe(statsRef.current);
+
     return () => obs.disconnect();
   }, []);
 
@@ -365,95 +411,66 @@ function HomePage({ nav }: { nav: (p: Page) => void }) {
 
   const services = [
     {
-      icon: Sun,
-      title: "Solar Installation",
-      color: "bg-amber-50 text-amber-600",
-      desc: "End-to-end solar panel installation for homes and businesses — from free site assessment to commissioning.",
+      number: "01",
+      title: "Solar Systems",
+      desc: "Complete solar power systems designed around the appliances, lifestyle and energy demands of your property.",
+      action: () => nav("solar"),
     },
     {
-      icon: Battery,
-      title: "Inverters & Batteries",
-      color: "bg-green-50 text-green-700",
-      desc: "Premium hybrid inverters and lithium iron phosphate batteries for all-day, all-night uninterrupted power.",
+      number: "02",
+      title: "Inverters & Storage",
+      desc: "Reliable inverter and battery combinations for dependable backup and better control over your electricity.",
+      action: () => nav("solar"),
     },
     {
-      icon: Zap,
-      title: "Solar Accessories",
-      color: "bg-blue-50 text-blue-600",
-      desc: "Cables, charge controllers, mounting structures, and all components for a complete, fully-wired solar system.",
+      number: "03",
+      title: "Solar Components",
+      desc: "Panels, charge controllers, mounting systems and the essential components required for a properly engineered installation.",
+      action: () => nav("solar"),
     },
     {
-      icon: Camera,
-      title: "CCTV Solutions",
-      color: "bg-purple-50 text-purple-600",
-      desc: "HD surveillance cameras for homes, shops, offices, and commercial properties. Remote viewing included.",
+      number: "04",
+      title: "CCTV & Security",
+      desc: "Modern surveillance systems for homes, offices, shops and commercial properties.",
+      action: () => nav("quote"),
     },
     {
-      icon: BookOpen,
-      title: "Solar Consultation",
-      color: "bg-orange-50 text-orange-600",
-      desc: "Free expert energy audit to determine the exact system size and components for your specific situation.",
+      number: "05",
+      title: "Energy Assessment",
+      desc: "We assess your actual energy requirements before recommending the system you should buy.",
+      action: () => nav("quote"),
     },
     {
-      icon: Wrench,
-      title: "Maintenance & Support",
-      color: "bg-teal-50 text-teal-600",
-      desc: "Scheduled servicing, emergency repairs, and 24/7 technical support for the lifetime of your system.",
+      number: "06",
+      title: "Maintenance",
+      desc: "Technical support, servicing and system maintenance that keeps your investment performing.",
+      action: () => nav("quote"),
     },
   ];
 
   const benefits = [
     {
-      icon: "💡",
-      title: "Cut Generator Costs",
-      desc: "Most customers save ₦30,000–₦80,000 monthly by eliminating fuel expenses completely.",
+      number: "01",
+      title: "Spend less on fuel",
+      desc: "Move essential loads away from expensive generator fuel and towards solar energy.",
     },
     {
-      icon: "🔋",
-      title: "24/7 Reliable Power",
-      desc: "Lights, fridge, fans, and appliances stay on — even through the longest NEPA outages.",
+      number: "02",
+      title: "Keep important things running",
+      desc: "Protect your home, business and equipment from unnecessary power interruptions.",
     },
     {
-      icon: "📈",
-      title: "Business Continuity",
-      desc: "No more downtime. Shops, offices, and pharmacies operate without interruption.",
+      number: "03",
+      title: "Build for the long term",
+      desc: "Quality components and proper installation create systems designed to serve for years.",
     },
     {
-      icon: "🏠",
-      title: "Increases Property Value",
-      desc: "A solar installation is a long-term asset that adds real value to your property.",
-    },
-    {
-      icon: "🌿",
-      title: "Cleaner & Quieter",
-      desc: "No fuel fumes, no generator noise. Better for your family and your community.",
-    },
-    {
-      icon: "⚡",
-      title: "Energy Independence",
-      desc: "Stop depending on NEPA/PHCN. Take full control of your power supply.",
+      number: "04",
+      title: "Know what you're buying",
+      desc: "Our recommendations are based on your actual energy needs rather than unnecessary upgrades.",
     },
   ];
 
-  const [projects, setProjects] = useState<AdminProject[]>([]);
-
-useEffect(() => {
-  const loadProjects = async () => {
-    try {
-      const data = await getProjectsFromSupabase();
-
-      const recentProjects = data
-        .filter((project) => project.published)
-        .slice(0, 4);
-
-      setProjects(recentProjects);
-    } catch (error) {
-      console.error("Failed to load homepage projects:", error);
-    }
-  };
-
-  loadProjects();
-}, []);
   const homeFaqs = [
     {
       q: "How much does solar installation cost in Nigeria?",
@@ -473,177 +490,434 @@ useEffect(() => {
     },
   ];
 
+  const [projects, setProjects] = useState<AdminProject[]>([]);
+  const [latestProducts, setLatestProducts] = useState<StoreProduct[]>([]);
+
+  useEffect(() => {
+    const loadProjects = async () => {
+      try {
+        const data = await getProjectsFromSupabase();
+
+        const recentProjects = data
+          .filter((project) => project.published)
+          .slice(0, 4);
+
+        setProjects(recentProjects);
+      } catch (error) {
+        console.error("Failed to load homepage projects:", error);
+      }
+    };
+
+    void loadProjects();
+  }, []);
+
+  // Load the six latest published products
+  useEffect(() => {
+    async function loadLatestProducts() {
+      const { data, error } = await supabase
+        .from("products")
+        .select("*")
+        .eq("published", true)
+        .order("updated_at", { ascending: false })
+        .limit(6);
+
+      if (error) {
+        console.error("Failed to load homepage products:", error);
+        return;
+      }
+
+      setLatestProducts((data ?? []) as StoreProduct[]);
+    }
+
+    void loadLatestProducts();
+  }, []);
+
   return (
-    <div>
+    <div className="bg-[#f3f1e9] text-[#101511] overflow-hidden">
       {/* HERO */}
-      <section className="relative min-h-[100svh] flex items-center overflow-hidden">
+      <section className="relative min-h-[100svh] bg-[#101511] text-white overflow-hidden">
         <div className="absolute inset-0">
           <img
-            src="https://images.unsplash.com/photo-1509391366360-2e959784a276?w=1600&h=1000&fit=crop&auto=format"
-            alt="Solar panels on a rooftop"
+            src="https://images.unsplash.com/photo-1509391366360-2e959784a276?w=2200&h=1500&fit=crop&auto=format"
+            alt="Solar installation"
             className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-br from-black/80 via-black/65 to-black/40" />
+
+          <div className="absolute inset-0 bg-[#07100b]/60" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#07100b]/95 via-[#07100b]/55 to-[#07100b]/10" />
         </div>
-        <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 text-center pt-24 pb-16">
-          <motion.span
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="inline-flex items-center gap-2 bg-[#15803D]/25 border border-[#15803D]/40 text-green-300 text-[11px] font-semibold tracking-[0.14em] uppercase px-4 py-1.5 rounded-full mb-7"
-          >
-            
-            Nigeria's Trusted Solar Experts · Nnewi, Anambra
-          </motion.span>
 
-          <motion.h1
-            initial={{ opacity: 0, y: 28 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.32 }}
-            className="text-4xl sm:text-5xl md:text-6xl lg:text-[70px] font-extrabold text-white leading-[1.06] tracking-tight mb-6"
-          >
-            Say Goodbye To
-            <br />
-            <span className="text-[#4ADE80]">Power Outages</span>
-          </motion.h1>
-
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.48 }}
-            className="text-lg sm:text-xl text-white/75 max-w-2xl mx-auto mb-3"
-          >
-            Affordable, Reliable and Sustainable Solar Solutions for Homes and
-            Businesses Across Nigeria.
-          </motion.p>
-
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.6 }}
-            className="text-sm sm:text-base text-white/50 max-w-xl mx-auto mb-10"
-          >
-            We supply and install solar systems, inverters, batteries and CCTV
-            solutions that keep homes and businesses powered when public
-            electricity fails.
-          </motion.p>
-
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.7 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-3"
-          >
-            <button
-              onClick={() => nav("quote")}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[#15803D] hover:bg-[#166534] text-white font-bold px-8 py-4 rounded-xl text-base transition-all hover:scale-[1.02] shadow-lg shadow-green-950/40"
-            >
-              Get Solar Assessment
-              <ArrowRight className="w-5 h-5" />
-            </button>
-            <a
-              href={wa(
-                "Hello! I'd like to enquire about solar solutions for my property.",
-              )}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white/10 hover:bg-white/18 border border-white/25 text-white font-semibold px-8 py-4 rounded-xl text-base transition-all backdrop-blur-sm"
-            >
-              <img src={whatsappIcon} alt="WhatsApp" className="w-8 h-6" />
-              Chat On WhatsApp
-            </a>
-          </motion.div>
+        <div className="absolute top-24 left-5 sm:left-8 lg:left-14 z-10">
+          <div className="flex items-center gap-3">
+            <span className="text-[10px] uppercase tracking-[0.24em] text-white/65">
+              Gabito Energy Solution
+            </span>
+          </div>
         </div>
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce opacity-60">
-          <ChevronDown className="w-6 h-6 text-white" />
-        </div>
-      </section>
 
-      {/* TRUST BAR */}
-      <section className="bg-[#15803D] overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 py-2">
-          <div className="relative w-full overflow-hidden">
-            {/* scrolling track */}
-            <div className="flex w-max animate-scroll gap-8 whitespace-nowrap">
-              {[
-                "✓ Affordable",
-                "✓ Reliable",
-                "✓ Sustainable",
-                "✓ Nationwide Delivery",
-                "✓ Expert Installation",
-                "✓ Ongoing Support",
-              ]
-                .concat([
-                  "✓ Affordable",
-                  "✓ Reliable",
-                  "✓ Sustainable",
-                  "✓ Nationwide Delivery",
-                  "✓ Expert Installation",
-                  "✓ Ongoing Support",
-                ]) // duplicate for seamless loop
-                .map((t, i) => (
-                  <span
-                    key={i}
-                    className="text-[13px] font-semibold text-white/90 shrink-0"
-                  >
-                    {t}
+        <div className="hidden lg:block absolute right-8 top-1/2 -translate-y-1/2 z-10">
+          <span
+            className="text-[9px] uppercase tracking-[0.3em] text-white/45"
+            style={{ writingMode: "vertical-rl" }}
+          >
+            Power · Storage · Security · Nigeria
+          </span>
+        </div>
+
+        <div className="relative z-10 min-h-[100svh] max-w-[1550px] mx-auto px-5 sm:px-8 lg:px-14 flex items-end pb-10 sm:pb-14 lg:pb-16">
+          <div className="w-full">
+            <Reveal>
+              <div className="max-w-6xl">
+                <h1 className="text-[clamp(4rem,10vw,10rem)] leading-[0.78] tracking-[-0.07em] font-semibold">
+                  Power
+                  <br />
+                  <span className="text-[#8bdc65]">without</span>
+                  <br />
+                  compromise.
+                </h1>
+              </div>
+            </Reveal>
+
+            <div className="mt-10 grid lg:grid-cols-[1fr_auto] gap-8 items-end">
+              <Reveal delay={0.15}>
+                <p className="text-sm sm:text-base lg:text-lg text-white/65 leading-7 max-w-xl">
+                  Solar energy systems, power storage and security solutions
+                  engineered for Nigerian homes and businesses.
+                </p>
+              </Reveal>
+
+              <Reveal delay={0.25}>
+                <button
+                  onClick={() => nav("quote")}
+                  className="group flex items-center gap-4 text-sm font-semibold"
+                >
+                  <span className="w-10 h-10 mb-4 rounded-full bg-[#8bdc65] text-[#101511] flex items-center justify-center group-hover:scale-105 transition-transform">
+                    <ArrowRight className="w-5 h-5" />
                   </span>
-                ))}
+
+                  <span className="text-white">Start your solar project</span>
+                </button>
+              </Reveal>
             </div>
           </div>
         </div>
 
-        {/* animation */}
-        <style>{`
-    @keyframes scroll {
-      0% { transform: translateX(0); }
-      100% { transform: translateX(-50%); }
-    }
+        <div className="absolute bottom-0 left-0 right-0 z-10">
+          <div className="max-w-[1550px] mx-auto px-5 sm:px-8 lg:px-14">
+            <div className="border-t border-white/15 py-4 flex flex-col sm:flex-row gap-3 justify-between">
+              <span className="text-[10px] uppercase tracking-[0.18em] text-white/45">
+                Nnewi, Anambra
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
 
-    .animate-scroll {
-      animation: scroll 18s linear infinite;
-    }
-  `}</style>
+      {/* INTRO */}
+      <section className="bg-[#f3f1e9] py-14 lg:py-26">
+        <div className="max-w-[1550px] mx-auto px-5 sm:px-8 lg:px-14">
+          <div className="grid lg:grid-cols-[0.35fr_1.65fr] gap-10 lg:gap-20">
+            <Reveal>
+              <div className="flex items-center gap-3 lg:pt-4">
+                <span className="text-[10px] uppercase tracking-[0.22em] text-black/45">
+                  The problem
+                </span>
+              </div>
+            </Reveal>
+
+            <Reveal delay={0.1}>
+              <div>
+                <h2 className="text-[clamp(2.5rem,5.5vw,6rem)] leading-[0.93] tracking-[-0.06em] font-medium max-w-6xl">
+                  Electricity shouldn't dictate
+                  <span className="text-[#15803D]">
+                    {" "}how your life works.
+                  </span>
+                </h2>
+
+                <div className="mt-6 grid md:grid-cols-2 gap-8 max-w-4xl">
+                  <p className="text-sm lg:text-base leading-7 text-black/55">
+                    Power cuts cost more than electricity. They interrupt
+                    businesses, damage equipment, disturb homes and force
+                    people to spend heavily on generators and fuel.
+                  </p>
+
+                  <p className="text-sm lg:text-base leading-7 text-black/55">
+                    We design systems that give you another option — reliable
+                    energy that is sized around your real needs and installed
+                    properly from the beginning.
+                  </p>
+                </div>
+              </div>
+            </Reveal>
+          </div>
+        </div>
       </section>
 
       {/* SERVICES */}
-      <section className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+      <section className="bg-[#191e1a] text-white py-24 lg:py-32">
+        <div className="max-w-[1550px] mx-auto px-5 sm:px-8 lg:px-14">
           <Reveal>
-            <div className="text-center mb-14">
-              <p className="text-[#15803D] font-semibold text-xs uppercase tracking-[0.14em] mb-3">
-                What We Do
-              </p>
-              <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">
-                Complete Energy & Security Solutions
-              </h2>
-              <p className="text-gray-500 text-sm max-w-xl mx-auto leading-relaxed">
-                Everything you need to power your home or business reliably —
-                from consultation to installation to long-term support.
+            <div className="flex flex-col lg:flex-row justify-between lg:items-end gap-8 mb-16">
+              <div>
+                <span className="text-[10px] uppercase tracking-[0.22em] text-[#8bdc65]">
+                  What we build
+                </span>
+
+                <h2 className="mt-5 text-[clamp(3rem,6vw,6.5rem)] leading-[0.85] tracking-[-0.06em] font-medium">
+                  Built around
+                  <br />
+                  your needs.
+                </h2>
+              </div>
+
+              <p className="text-sm leading-7 text-white/45 max-w-sm">
+                There is no single solar system for everybody. We help you
+                choose the right combination of power generation, storage and
+                security.
               </p>
             </div>
           </Reveal>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {services.map((s, i) => (
-              <Reveal key={s.title} delay={i * 0.07}>
-                <div className="group border border-gray-100 rounded-2xl p-7 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 bg-white">
-                  <div
-                    className={`w-11 h-11 rounded-xl flex items-center justify-center mb-5 ${s.color}`}
-                  >
-                    <s.icon className="w-5.5 h-5.5" strokeWidth={2} />
-                  </div>
-                  <h3 className="text-[15px] font-bold text-gray-900 mb-2">
-                    {s.title}
+
+          <div className="border-t border-white/15">
+            {services.map((service, index) => (
+              <Reveal key={service.title} delay={index * 0.05}>
+                <button
+                  onClick={service.action}
+                  className="w-full text-left group border-b border-white/15 py-7 lg:py-9 grid lg:grid-cols-[100px_1fr_1fr_60px] gap-5 lg:gap-10 items-center hover:bg-white/[0.025] transition-colors"
+                >
+                  <span className="text-xs text-[#8bdc65]/70">
+                    {service.number}
+                  </span>
+
+                  <h3 className="text-2xl sm:text-3xl lg:text-4xl tracking-[-0.035em] font-medium group-hover:text-[#8bdc65] transition-colors">
+                    {service.title}
                   </h3>
-                  <p className="text-gray-500 text-sm leading-relaxed mb-4">
-                    {s.desc}
+
+                  <p className="text-sm leading-6 text-white/45 max-w-md">
+                    {service.desc}
                   </p>
+
+                  <span className="w-11 h-11 rounded-full border border-white/20 flex items-center justify-center group-hover:bg-[#8bdc65] group-hover:text-[#101511] group-hover:border-[#8bdc65] transition-all">
+                    <ArrowRight className="w-4 h-4" />
+                  </span>
+                </button>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* SOLAR FEATURE */}
+      <section className="bg-[#f3f1e9] py-24 lg:py-36">
+        <div className="max-w-[1550px] mx-auto px-5 sm:px-8 lg:px-14">
+          <div className="grid lg:grid-cols-[1.15fr_0.85fr] gap-10 lg:gap-16 items-stretch">
+            <Reveal>
+              <div className="relative min-h-[500px] lg:min-h-[720px] overflow-hidden bg-[#d8d7ce]">
+               <img
+  src="https://images.unsplash.com/photo-1509391366360-2e959784a276?w=1800&h=2000&fit=crop&auto=format"
+  alt="Solar panels installed for residential power in Nigeria"
+  className="absolute inset-0 w-full h-full object-cover"
+/>
+
+                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+
+                <div className="absolute left-6 bottom-6 lg:left-10 lg:bottom-10">
+                  <div className="bg-[#f3f1e9] text-[#101511] px-5 py-4">
+                    <p className="text-[9px] uppercase tracking-[0.2em] text-black/45">
+                      Energy independence
+                    </p>
+
+                    <p className="mt-1 text-sm font-semibold">
+                      Designed for real life.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </Reveal>
+
+            <Reveal delay={0.12}>
+              <div className="flex flex-col justify-between py-2 lg:py-8">
+                <div>
+                  <span className="text-[10px] uppercase tracking-[0.22em] text-[#15803D]">
+                    Why solar
+                  </span>
+
+                  <h2 className="mt-6 text-[clamp(3rem,5vw,5.5rem)] leading-[0.9] tracking-[-0.055em] font-medium">
+                    Own more
+                    <br />
+                    of your
+                    <br />
+                    power.
+                  </h2>
+
+                  <p className="mt-8 text-sm lg:text-base leading-7 text-black/55 max-w-md">
+                    Solar isn't simply about replacing your generator. It's
+                    about creating a better energy setup for the things that
+                    matter to you.
+                  </p>
+                </div>
+
+                <div className="mt-14">
+                  {benefits.map((benefit) => (
+                    <div
+                      key={benefit.number}
+                      className="border-t border-black/12 py-5 grid grid-cols-[45px_1fr] gap-5"
+                    >
+                      <span className="text-xs text-[#15803D]">
+                        {benefit.number}
+                      </span>
+
+                      <div>
+                        <h4 className="text-sm font-semibold">
+                          {benefit.title}
+                        </h4>
+
+                        <p className="mt-1 text-xs leading-6 text-black/45 max-w-md">
+                          {benefit.desc}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  onClick={() => nav("solar")}
+                  className="mt-8 self-start flex items-center gap-4 text-sm font-semibold group"
+                >
+                  Explore solar solutions
+
+                  <span className="w-10 h-10 rounded-full bg-[#15803D] text-white flex items-center justify-center group-hover:translate-x-1 transition-transform">
+                    <ArrowRight className="w-4 h-4" />
+                  </span>
+                </button>
+              </div>
+            </Reveal>
+          </div>
+        </div>
+      </section>
+
+      {/* LATEST PRODUCTS */}
+      <section className="bg-[#f3f1e9] py-20 lg:py-28 border-t border-black/5">
+        <div className="max-w-[1550px] mx-auto px-5 sm:px-8 lg:px-14">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-5 mb-10">
+            <div>
+              <span className="text-[10px] uppercase tracking-[0.22em] text-[#15803D]">
+                Available now
+              </span>
+
+              <h2 className="mt-4 text-4xl sm:text-5xl lg:text-7xl tracking-[-0.06em] font-medium">
+                Latest products.
+              </h2>
+
+              <p className="mt-3 text-sm text-black/55">
+                Explore our latest energy products and equipment.
+              </p>
+            </div>
+
+            <button
+              onClick={() => nav("store")}
+              className="flex items-center gap-3 text-sm font-semibold group self-start sm:self-auto"
+            >
+              View all products
+
+              <span className="w-10 h-10 rounded-full bg-[#15803D] text-white flex items-center justify-center group-hover:translate-x-1 transition-transform">
+                <ArrowRight className="w-4 h-4" />
+              </span>
+            </button>
+          </div>
+
+          {latestProducts.length === 0 ? (
+            <p className="py-8 text-sm text-black/50">
+              New products will appear here soon.
+            </p>
+          ) : (
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5">
+              {latestProducts.map((product) => (
+                <article
+                  key={product.id}
+                  className="bg-white border border-black/5 overflow-hidden"
+                >
                   <button
-                    onClick={() => nav("quote")}
-                    className="text-[#15803D] text-sm font-semibold flex items-center gap-1 group-hover:gap-2 transition-all"
+                    onClick={() => nav("store")}
+                    aria-label={`View ${product.name} in the store`}
+                    className="block w-full aspect-square bg-[#e9e8e1] overflow-hidden"
                   >
-                    Get a Quote <ArrowRight className="w-4 h-4" />
+                    {product.image_url ? (
+                      <img
+                        src={product.image_url}
+                        alt={product.name}
+                        loading="lazy"
+                        className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-black/30">
+                        <span className="text-xs">Product image</span>
+                      </div>
+                    )}
                   </button>
+
+                  <div className="p-3 sm:p-5">
+                    <h3 className="text-sm sm:text-base font-semibold text-[#101511] line-clamp-2">
+                      {product.name}
+                    </h3>
+
+                    <p className="mt-2 text-sm sm:text-base font-bold text-[#15803D]">
+                      ₦{Number(product.price).toLocaleString("en-NG")}
+                    </p>
+
+                    <a
+                      href={`https://wa.me/2348109946212?text=${encodeURIComponent(
+                        `Hello Gabito Energy, I'm interested in ${product.name}, priced at ₦${Number(product.price).toLocaleString("en-NG")}.`,
+                      )}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block text-center mt-3 bg-[#15803D] text-white py-2.5 px-2 text-xs sm:text-sm font-semibold hover:bg-[#166534] transition-colors"
+                    >
+                      Buy Now
+                    </a>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* STATS */}
+      <section ref={statsRef} className="bg-[#8bdc65] text-[#101511]">
+        <div className="max-w-[1550px] mx-auto px-3 sm:px-8 lg:px-14">
+          <div className="grid grid-cols-4">
+            {[
+              {
+                value: `${installs}+`,
+                label: "Installations completed",
+              },
+              {
+                value: `${customers}+`,
+                label: "Customers served",
+              },
+              {
+                value: "24/7",
+                label: "Technical support",
+              },
+              {
+                value: "Nigeria",
+                label: "Nationwide coverage",
+              },
+            ].map((stat, index) => (
+              <Reveal key={stat.label} delay={index * 0.05}>
+                <div
+                  className={`py-4 px-2 sm:py-6 sm:px-4 lg:py-8 lg:pr-12 ${
+                    index !== 3 ? "border-r border-black/15" : ""
+                  }`}
+                >
+                  <div className="text-[clamp(0.85rem,3.8vw,4.5rem)] sm:text-[clamp(1.5rem,4vw,4.5rem)] tracking-[-0.06em] leading-none font-medium break-words">
+                    {stat.value}
+                  </div>
+
+                  <p className="mt-2 text-[6px] sm:text-[9px] uppercase tracking-normal sm:tracking-[0.16em] font-semibold leading-3 sm:leading-5">
+                    {stat.label}
+                  </p>
                 </div>
               </Reveal>
             ))}
@@ -651,44 +925,136 @@ useEffect(() => {
         </div>
       </section>
 
-      {/* WHY SOLAR */}
-      <section className="py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
+      {/* PROJECTS */}
+      <section className="bg-[#101511] text-white py-24 lg:py-32">
+        <div className="max-w-[1550px] mx-auto px-5 sm:px-8 lg:px-14">
+          <Reveal>
+            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-14">
+              <div>
+                <span className="text-[10px] uppercase tracking-[0.22em] text-[#8bdc65]">
+                  Recent work
+                </span>
+
+                <h2 className="mt-5 text-[clamp(3rem,6vw,6.5rem)] leading-[0.84] tracking-[-0.06em] font-medium">
+                  Installed.
+                  <br />
+                  Tested.
+                  <br />
+                  Working.
+                </h2>
+              </div>
+
+              <button
+                onClick={() => nav("projects")}
+                className="group flex items-center gap-3 text-sm font-semibold"
+              >
+                See all projects
+
+                <span className="w-10 h-10 rounded-full border border-white/20 flex items-center justify-center group-hover:bg-[#8bdc65] group-hover:text-[#101511] group-hover:border-[#8bdc65] transition-all">
+                  <ArrowRight className="w-4 h-4" />
+                </span>
+              </button>
+            </div>
+          </Reveal>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-1">
+            {projects.map((project, index) => (
+              <Reveal key={project.title} delay={index * 0.06}>
+                <button
+                  onClick={() => nav("projects")}
+                  className="group text-left w-full"
+                >
+                  <div className="relative aspect-[4/5] overflow-hidden bg-[#1c221e]">
+                    <ImageWithFallback
+                      src={project.thumbnail}
+                      alt={project.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                    />
+
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent" />
+
+                    <div className="absolute left-5 right-5 bottom-5">
+                      <p className="text-[9px] uppercase tracking-[0.14em] text-white/55 mb-2">
+                        {project.category}
+                      </p>
+
+                      <h3 className="text-lg font-medium">{project.title}</h3>
+
+                      <p className="mt-1 text-xs text-white/55 flex items-center gap-1.5">
+                        <MapPin className="w-3 h-3" />
+                        {project.location}
+                      </p>
+                    </div>
+                  </div>
+                </button>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* TRUST */}
+      <section className="bg-[#f3f1e9] py-24 lg:py-32">
+        <div className="max-w-[1550px] mx-auto px-5 sm:px-8 lg:px-14">
+          <div className="grid lg:grid-cols-[0.75fr_1.25fr] gap-14 lg:gap-24">
             <Reveal>
               <div>
-                <p className="text-[#15803D] font-semibold text-xs uppercase tracking-[0.14em] mb-3">
-                  Why Solar?
-                </p>
-                <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-5 leading-tight">
-                  Stop Paying For Fuel.
+                <span className="text-[10px] uppercase tracking-[0.22em] text-[#15803D]">
+                  Why Gabito
+                </span>
+
+                <h2 className="mt-6 text-[clamp(3rem,5vw,5.5rem)] leading-[0.9] tracking-[-0.055em] font-medium">
+                  We don't
                   <br />
-                  Start Generating Your Own Power.
+                  sell what
+                  <br />
+                  you don't need.
                 </h2>
-                <p className="text-gray-500 leading-relaxed mb-8 text-sm">
-                  Every day you run a generator, you're spending money that
-                  doesn't have to go. Solar gives you electricity independence —
-                  no fuel, no noise, no NEPA dependency. The system pays for
-                  itself within months.
+
+                <p className="mt-7 text-sm leading-7 text-black/50 max-w-md">
+                  Good solar work begins with honest assessment. We recommend
+                  systems around your requirements, budget and future needs.
                 </p>
-                <button
-                  onClick={() => nav("solar")}
-                  className="inline-flex items-center gap-2 bg-[#15803D] hover:bg-[#166534] text-white font-bold px-6 py-3.5 rounded-xl transition-colors"
-                >
-                  Learn About Solar <ArrowRight className="w-4 h-4" />
-                </button>
               </div>
             </Reveal>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {benefits.map((b, i) => (
-                <Reveal key={b.title} delay={i * 0.06}>
-                  <div className="bg-white rounded-xl p-5 border border-gray-100 hover:shadow-sm transition-shadow">
-                    <span className="text-2xl mb-3 block">{b.icon}</span>
-                    <h4 className="font-bold text-gray-900 text-[13px] mb-1">
-                      {b.title}
-                    </h4>
-                    <p className="text-gray-500 text-xs leading-relaxed">
-                      {b.desc}
+
+            <div className="border-t border-black/12">
+              {[
+                {
+                  title: "Experienced technicians",
+                  desc: "Our installers are trained and have completed successful projects across Anambra and beyond.",
+                },
+                {
+                  title: "Quality components",
+                  desc: "We work with established equipment brands rather than cutting corners with substandard hardware.",
+                },
+                {
+                  title: "Proper system sizing",
+                  desc: "We calculate your requirements before recommending the system you need.",
+                },
+                {
+                  title: "Professional installation",
+                  desc: "Every installation is properly wired, tested and commissioned before handover.",
+                },
+                {
+                  title: "After-sales support",
+                  desc: "We remain available when your system needs servicing, troubleshooting or maintenance.",
+                },
+                {
+                  title: "Local knowledge",
+                  desc: "Based in Nnewi, we understand the practical realities of power supply in Nigeria.",
+                },
+              ].map((item, index) => (
+                <Reveal key={item.title} delay={index * 0.04}>
+                  <div className="py-7 border-b border-black/12 grid grid-cols-1 sm:grid-cols-[50px_0.8fr_1.2fr] gap-4 sm:gap-8">
+                    <span className="text-xs text-[#15803D]">
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
+
+                    <h3 className="font-medium text-base">{item.title}</h3>
+
+                    <p className="text-xs sm:text-sm leading-6 text-black/45">
+                      {item.desc}
                     </p>
                   </div>
                 </Reveal>
@@ -698,226 +1064,111 @@ useEffect(() => {
         </div>
       </section>
 
-      {/* STATS */}
-      <section ref={statsRef} className="py-16 sm:py-20 bg-[#15803D]">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 text-center">
-            {[
-              { value: `${installs}+`, label: "Installations Completed" },
-              { value: `${customers}+`, label: "Customers Served" },
-              { value: "24/7", label: "Technical Support" },
-              { value: "Nationwide", label: "Delivery Coverage" },
-            ].map((s) => (
-              <div key={s.label} className="px-1 sm:px-2">
-                {/* VALUE */}
-                <div className="text-2xl sm:text-4xl lg:text-5xl font-extrabold text-white mb-1 sm:mb-2 tracking-tight leading-none ">
-                  {s.value}
-                </div>
-
-                {/* LABEL */}
-                <div className="text-[10px] sm:text-xs font-semibold uppercase tracking-[0.08em] sm:tracking-[0.1em] text-green-200 leading-snug break-words px-1">
-                  {s.label}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* PROJECTS PREVIEW */}
-      <section className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <Reveal>
-            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-12">
+      {/* FAQ */}
+      <section className="bg-white py-24 lg:py-32">
+        <div className="max-w-[1100px] mx-auto px-5 sm:px-8">
+          <div className="grid lg:grid-cols-[0.65fr_1.35fr] gap-12 lg:gap-20">
+            <Reveal>
               <div>
-                <p className="text-[#15803D] font-semibold text-xs uppercase tracking-[0.14em] mb-3">
-                  Real Work. Real Results.
-                </p>
-                <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900">
-                  Recent Installations
+                <span className="text-[10px] uppercase tracking-[0.22em] text-[#15803D]">
+                  Questions
+                </span>
+
+                <h2 className="mt-6 text-[clamp(3rem,5vw,5rem)] leading-[0.9] tracking-[-0.055em] font-medium">
+                  Let's clear
+                  <br />
+                  things up.
                 </h2>
               </div>
-              <button
-                onClick={() => nav("projects")}
-                className="flex items-center gap-2 text-[#15803D] font-semibold text-sm hover:underline shrink-0"
-              >
-                View All Projects <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
-          </Reveal>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {projects.map((p, i) => (
-              <Reveal key={p.title} delay={i * 0.08}>
-                <div
-                  onClick={() => nav("projects")}
-                  className="group cursor-pointer rounded-2xl overflow-hidden border border-gray-100 hover:shadow-lg transition-all duration-300"
+            </Reveal>
+
+            <Reveal delay={0.1}>
+              <div className="border-t border-black/12">
+                {homeFaqs.map((faq, index) => (
+                  <FAQItem
+                    key={index}
+                    q={faq.q}
+                    a={faq.a}
+                    delay={index * 0.05}
+                  />
+                ))}
+
+                <button
+                  onClick={() => nav("faq")}
+                  className="mt-7 flex items-center gap-3 text-sm font-semibold text-[#15803D] group"
                 >
-                  <div className="relative h-52 bg-gray-100 overflow-hidden">
-                    <ImageWithFallback
-                      src={p.thumbnail}
-                      alt={p.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                    <span className="absolute top-3 left-3 bg-white/92 text-xs font-semibold text-gray-700 px-2.5 py-1 rounded-full backdrop-blur-sm">
-                      {p.category}
-                    </span>
-                  </div>
-                  <div className="p-4">
-                    <h4 className="font-bold text-gray-900 text-[13px] mb-1">
-                      {p.title}
-                    </h4>
-                    <p className="text-[#15803D] text-xs font-medium flex items-center gap-1 mb-2">
-                      <MapPin className="w-3 h-3" />
-                      {p.location}
-                    </p>
-                    <p className="text-gray-500 text-xs leading-relaxed">
-                      {p.solution}
-                    </p>
-                  </div>
-                </div>
-              </Reveal>
-            ))}
+                  View all questions
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </button>
+              </div>
+            </Reveal>
           </div>
-        </div>
-      </section>
-
-      {/* WHY TRUST */}
-      <section className="py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <Reveal>
-            <div className="text-center mb-14">
-              <p className="text-[#15803D] font-semibold text-xs uppercase tracking-[0.14em] mb-3">
-                Why Gabito?
-              </p>
-              <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">
-                Why Customers Trust Us
-              </h2>
-              <p className="text-gray-500 text-sm max-w-xl mx-auto">
-                We've earned the trust of hundreds of customers across Nigeria
-                by doing the job right — every time.
-              </p>
-            </div>
-          </Reveal>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {[
-              {
-                icon: Award,
-                title: "Experienced Technicians",
-                desc: "Our installers are trained and have completed hundreds of successful projects across Anambra and beyond.",
-              },
-              {
-                icon: CheckCircle,
-                title: "Quality Components Only",
-                desc: "We work with brands like Felicity Solar, Firman, AllsparkPower, and Cworth Energy — no substandard equipment.",
-              },
-              {
-                icon: Users,
-                title: "Transparent Recommendations",
-                desc: "We size your system based on your actual needs. You only pay for what you genuinely need — no upselling.",
-              },
-              {
-                icon: Zap,
-                title: "Professional Installation",
-                desc: "Every installation is clean, safe, and properly commissioned. Tested before we leave your premises.",
-              },
-              {
-                icon: Clock,
-                title: "Reliable After-Sales Support",
-                desc: "Issues don't wait for business hours. We respond fast and stay available for the lifetime of your system.",
-              },
-              {
-                icon: MapPin,
-                title: "Deep Local Knowledge",
-                desc: "Based in Nnewi, we understand, Nigeria's power situation better than any out-of-state company.",
-              },
-            ].map((item, i) => (
-              <Reveal key={item.title} delay={i * 0.07}>
-                <div className="flex gap-4 p-6 bg-white rounded-2xl border border-gray-100 hover:shadow-sm transition-shadow">
-                  <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center shrink-0">
-                    <item.icon className="w-5 h-5 text-[#15803D]" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-gray-900 text-[13px] mb-1">
-                      {item.title}
-                    </h4>
-                    <p className="text-gray-500 text-xs leading-relaxed">
-                      {item.desc}
-                    </p>
-                  </div>
-                </div>
-              </Reveal>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* FAQ PREVIEW */}
-      <section className="py-20 bg-white">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6">
-          <Reveal>
-            <div className="text-center mb-12">
-              <p className="text-[#15803D] font-semibold text-xs uppercase tracking-[0.14em] mb-3">
-                Common Questions
-              </p>
-              <h2 className="text-3xl font-extrabold text-gray-900">
-                Frequently Asked Questions
-              </h2>
-            </div>
-          </Reveal>
-          <div className="space-y-3">
-            {homeFaqs.map((f, i) => (
-              <FAQItem key={i} q={f.q} a={f.a} delay={i * 0.07} />
-            ))}
-          </div>
-          <Reveal delay={0.3}>
-            <div className="text-center mt-8">
-              <button
-                onClick={() => nav("faq")}
-                className="inline-flex items-center gap-2 text-[#15803D] font-semibold text-sm hover:underline"
-              >
-                View All Questions <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
-          </Reveal>
         </div>
       </section>
 
       {/* FINAL CTA */}
-      <section className="py-20 bg-[#0D1117]">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
+      <section className="bg-[#191e1a] text-white relative overflow-hidden">
+        <div className="absolute right-0 top-0 bottom-0 w-full lg:w-[48%]">
+          <img
+            src="https://images.unsplash.com/photo-1508514177221-188b1cf16e9d?w=1800&h=1300&fit=crop&auto=format"
+            alt=""
+            className="w-full h-full object-cover opacity-45"
+          />
+
+          <div className="absolute inset-0 bg-gradient-to-r from-[#191e1a] via-[#191e1a]/65 to-transparent" />
+        </div>
+
+        <div className="relative z-10 max-w-[1550px] mx-auto px-5 sm:px-8 lg:px-14 py-28 lg:py-40">
           <Reveal>
-            <div className="w-16 h-16 bg-[#15803D]/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
-              <Sun className="w-8 h-8 text-[#4ADE80]" />
-            </div>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-white mb-4">
-              Ready To End Power Problems?
-            </h2>
-            <p className="text-gray-400 text-sm max-w-xl mx-auto mb-10">
-              Join 1,000+ homes and businesses across Nigeria that have made the
-              switch to reliable, affordable solar with Gabito Energy Solution.
-            </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-              <button
-                onClick={() => nav("quote")}
-                className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[#15803D] hover:bg-[#166534] text-white font-bold px-8 py-4 rounded-xl transition-all hover:scale-[1.02]"
-              >
-                Get Free Quote <ArrowRight className="w-5 h-5" />
-              </button>
-              <a
-                href={`tel:${PHONE1}`}
-                className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white/8 hover:bg-white/14 border border-white/15 text-white font-semibold px-8 py-4 rounded-xl transition-colors"
-              >
-                <Phone className="w-5 h-5" /> Call Now
-              </a>
-              <a
-                href={wa()}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[#25D366]/15 hover:bg-[#25D366]/25 border border-[#25D366]/30 text-[#25D366] font-semibold px-8 py-4 rounded-xl transition-colors"
-              >
-                <img src={whatsappIcon} alt="WhatsApp" className="w-10 h-8" />{" "}
-                Chat On WhatsApp
-              </a>
+            <div className="max-w-4xl">
+              <span className="text-[10px] uppercase tracking-[0.22em] text-[#8bdc65]">
+                Your next step
+              </span>
+
+              <h2 className="mt-6 text-[clamp(3.5rem,7vw,8rem)] leading-[0.82] tracking-[-0.07em] font-medium">
+                Let's build
+                <br />
+                your power
+                <br />
+                system.
+              </h2>
+
+              <p className="mt-8 text-sm sm:text-base leading-7 text-white/45 max-w-lg">
+                Tell us what you need and we'll help you determine the right
+                solution for your home or business.
+              </p>
+
+              <div className="flex flex-col sm:flex-row gap-3 mt-10">
+                <button
+                  onClick={() => nav("quote")}
+                  className="flex items-center justify-center gap-3 bg-[#8bdc65] text-[#101511] font-semibold px-7 py-4 hover:bg-[#a0e87e] transition-colors"
+                >
+                  Get a free assessment
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+
+                <a
+                  href={`tel:${PHONE1}`}
+                  className="flex items-center justify-center gap-3 border border-white/20 px-7 py-4 text-sm font-medium hover:border-white/45 transition-colors"
+                >
+                  <Phone className="w-4 h-4" />
+                  Call Gabito
+                </a>
+
+                <a
+                  href={wa()}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-3 border border-[#25D366]/30 text-[#25D366] px-7 py-4 text-sm font-medium hover:bg-[#25D366]/10 transition-colors"
+                >
+                  <img
+                    src={whatsappIcon}
+                    alt="WhatsApp"
+                    className="w-5 h-5 object-contain"
+                  />
+                  WhatsApp
+                </a>
+              </div>
             </div>
           </Reveal>
         </div>
@@ -925,55 +1176,72 @@ useEffect(() => {
     </div>
   );
 }
-
 // ── PROJECTS PAGE ────────────────────────────────────────────────────────────
-function ProjectsPage({ nav }: { nav: (p: Page) => void }) {
-  const [tab, setTab] = useState<"all" | "residential" | "commercial">("all");
 
+function ProjectsPage({ nav }: { nav: (p: Page) => void }) {
+  const [tab, setTab] = useState<
+    "all" | "residential" | "commercial"
+  >("all");
 
   const [all, setAll] = useState<AdminProject[]>([]);
-const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
 
-useEffect(() => {
-  const loadProjects = async () => {
-    try {
-      const data = await getProjectsFromSupabase();
-      setAll(data);
-    } catch (error) {
-      console.error("Failed to load public projects:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+    const loadProjects = async () => {
+      try {
+        const data = await getProjectsFromSupabase();
+        setAll(data);
+      } catch (error) {
+        console.error(
+          "Failed to load public projects:",
+          error,
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  loadProjects();
-}, []);
+    loadProjects();
+  }, []);
 
-  
-
-  const filtered = tab === "all" ? all : all.filter((p) => p.category === tab);
+  const filtered =
+    tab === "all"
+      ? all
+      : all.filter((p) => p.category === tab);
 
   return (
     <div className="pt-16">
+
       <section className="bg-gray-900 py-20 px-4">
+
         <div className="max-w-4xl mx-auto text-center">
+
           <p className="text-[#4ADE80] font-semibold text-xs uppercase tracking-[0.14em] mb-4">
             Portfolio
           </p>
+
           <h1 className="text-4xl sm:text-5xl font-extrabold text-white mb-4">
             Real Installations. Proven Results.
           </h1>
+
           <p className="text-gray-400 max-w-xl mx-auto text-sm">
             Every project here is a real system built by our team— actual
             equipment we've installed for real customers across Nigeria.
           </p>
+
         </div>
+
       </section>
 
       <section className="py-16 bg-white">
+
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
+
           <div className="flex gap-2 mb-10 flex-wrap">
-            {(["all", "residential", "commercial"] as const).map((t) => (
+
+            {(
+              ["all", "residential", "commercial"] as const
+            ).map((t) => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
@@ -985,82 +1253,121 @@ useEffect(() => {
               >
                 {t === "all"
                   ? `All Projects (${all.length})`
-                  : `${t} (${all.filter((p) => p.category === t).length})`}
+                  : `${t} (${all.filter(
+                      (p) => p.category === t,
+                    ).length})`}
               </button>
             ))}
+
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filtered.map((p, i) => (
-              <Reveal key={p.title} delay={i * 0.06}>
-                <div className="group rounded-2xl overflow-hidden border border-gray-100 hover:shadow-lg transition-all duration-300">
-                  <div className="relative h-60 bg-gray-100 overflow-hidden">
-                    <ImageWithFallback
-                      src={p.thumbnail}
-                      alt={p.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                    <span
-                      className={`absolute top-3 left-3 text-xs font-semibold px-3 py-1 rounded-full ${
-                        p.category === "residential"
-                          ? "bg-blue-100 text-blue-700"
-                          : "bg-amber-100 text-amber-700"
-                      }`}
-                    >
-                      {p.category === "residential" ? "Residential" : "Commercial"}
-                    </span>
-                  </div>
-                  <div className="p-5">
-                    <h3 className="font-bold text-gray-900 text-[15px] mb-1">
-                      {p.title}
-                    </h3>
-                    <p className="text-[#15803D] text-xs font-medium flex items-center gap-1 mb-4">
-                      <MapPin className="w-3 h-3" />
-                      {p.location}
-                    </p>
-                    <div className="space-y-1.5 text-xs text-gray-600">
-                      <p>
-                        <span className="font-semibold text-gray-800">
-                          Challenge:{" "}
-                        </span>
-                        {p.challenge}
-                      </p>
-                      <p>
-                        <span className="font-semibold text-gray-800">
-                          Solution:{" "}
-                        </span>
-                        {p.solution}
-                      </p>
-                      <p>
-                        <span className="font-semibold text-[#15803D]">
-                          Outcome:{" "}
-                        </span>
-                        {p.outcome}
-                      </p>
+          {loading ? (
+            <div className="py-20 text-center text-sm text-gray-400">
+              Loading projects...
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+
+              {filtered.map((p, i) => (
+                <Reveal
+                  key={p.title}
+                  delay={i * 0.06}
+                >
+
+                  <div className="group rounded-2xl overflow-hidden border border-gray-100 hover:shadow-lg transition-all duration-300">
+
+                    <div className="relative h-60 bg-gray-100 overflow-hidden">
+
+                      <ImageWithFallback
+                        src={p.thumbnail}
+                        alt={p.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+
+                      <span
+                        className={`absolute top-3 left-3 text-xs font-semibold px-3 py-1 rounded-full ${
+                          p.category === "residential"
+                            ? "bg-blue-100 text-blue-700"
+                            : "bg-amber-100 text-amber-700"
+                        }`}
+                      >
+                        {p.category === "residential"
+                          ? "Residential"
+                          : "Commercial"}
+                      </span>
+
                     </div>
+
+                    <div className="p-5">
+
+                      <h3 className="font-bold text-gray-900 text-[15px] mb-1">
+                        {p.title}
+                      </h3>
+
+                      <p className="text-[#15803D] text-xs font-medium flex items-center gap-1 mb-4">
+                        <MapPin className="w-3 h-3" />
+                        {p.location}
+                      </p>
+
+                      <div className="space-y-1.5 text-xs text-gray-600">
+
+                        <p>
+                          <span className="font-semibold text-gray-800">
+                            Challenge:{" "}
+                          </span>
+                          {p.challenge}
+                        </p>
+
+                        <p>
+                          <span className="font-semibold text-gray-800">
+                            Solution:{" "}
+                          </span>
+                          {p.solution}
+                        </p>
+
+                        <p>
+                          <span className="font-semibold text-[#15803D]">
+                            Outcome:{" "}
+                          </span>
+                          {p.outcome}
+                        </p>
+
+                      </div>
+
+                    </div>
+
                   </div>
-                </div>
-              </Reveal>
-            ))}
-          </div>
+
+                </Reveal>
+              ))}
+
+            </div>
+          )}
 
           <Reveal delay={0.3}>
+
             <div className="mt-16 bg-[#F0FDF4] rounded-2xl p-10 text-center border border-green-100">
+
               <h3 className="text-2xl font-extrabold text-gray-900 mb-3">
                 Want Your Property on This List?
               </h3>
+
               <p className="text-gray-500 text-sm mb-7">
                 Request a free site assessment and get a custom system design
                 for your home or business.
               </p>
+
               <button
                 onClick={() => nav("quote")}
                 className="bg-[#15803D] hover:bg-[#166534] text-white font-bold px-8 py-4 rounded-xl transition-colors"
               >
                 Request Free Assessment
               </button>
+
             </div>
+
           </Reveal>
+
         </div>
       </section>
     </div>
@@ -1068,6 +1375,7 @@ useEffect(() => {
 }
 
 // ── SOLAR PAGE ───────────────────────────────────────────────────────────────
+
 function SolarPage({ nav }: { nav: (p: Page) => void }) {
   const systems = [
     {
@@ -1118,46 +1426,68 @@ function SolarPage({ nav }: { nav: (p: Page) => void }) {
 
   return (
     <div className="pt-16">
+
       <section className="bg-[#0D1117] py-20 px-4">
+
         <div className="max-w-4xl mx-auto text-center">
+
           <p className="text-[#4ADE80] font-semibold text-xs uppercase tracking-[0.14em] mb-4">
             Solar Solutions
           </p>
+
           <h1 className="text-4xl sm:text-5xl font-extrabold text-white mb-4">
             Everything Solar.
             <br />
             Built for Nigeria.
           </h1>
+
           <p className="text-gray-400 max-w-xl mx-auto text-sm mb-8">
-            From small home backup systems to large commercial installations, we
-            design and install solutions that actually work in Nigeria's
+            From small home backup systems to large commercial installations,
+            we design and install solutions that actually work in Nigeria's
             electricity reality.
           </p>
+
           <button
             onClick={() => nav("quote")}
             className="bg-[#15803D] hover:bg-[#166534] text-white font-bold px-8 py-4 rounded-xl transition-colors"
           >
             Get Free Solar Assessment
           </button>
+
         </div>
+
       </section>
 
       <section className="py-20 bg-white">
+
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-16">
+
             {systems.map((s, i) => (
-              <Reveal key={s.title} delay={i * 0.08}>
+              <Reveal
+                key={s.title}
+                delay={i * 0.08}
+              >
+
                 <div className="border border-gray-100 rounded-2xl p-8 hover:shadow-md transition-all">
+
                   <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center mb-5">
+
                     <s.icon className="w-6 h-6 text-[#15803D]" />
+
                   </div>
+
                   <h3 className="text-xl font-bold text-gray-900 mb-3">
                     {s.title}
                   </h3>
+
                   <p className="text-gray-500 text-sm leading-relaxed mb-5">
                     {s.desc}
                   </p>
+
                   <ul className="space-y-2">
+
                     {s.specs.map((spec) => (
                       <li
                         key={spec}
@@ -1167,23 +1497,34 @@ function SolarPage({ nav }: { nav: (p: Page) => void }) {
                         {spec}
                       </li>
                     ))}
+
                   </ul>
+
                 </div>
+
               </Reveal>
             ))}
+
           </div>
 
           <Reveal>
+
             <div className="bg-gray-50 rounded-2xl p-10">
+
               <div className="text-center mb-10">
+
                 <p className="text-[#15803D] font-semibold text-xs uppercase tracking-[0.14em] mb-3">
                   How It Works
                 </p>
+
                 <h2 className="text-3xl font-extrabold text-gray-900">
                   Our Installation Process
                 </h2>
+
               </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+
                 {[
                   {
                     n: "01",
@@ -1206,79 +1547,116 @@ function SolarPage({ nav }: { nav: (p: Page) => void }) {
                     d: "Everything tested before we leave. Ongoing support available whenever you need it.",
                   },
                 ].map((s, i) => (
-                  <Reveal key={s.n} delay={i * 0.1}>
+                  <Reveal
+                    key={s.n}
+                    delay={i * 0.1}
+                  >
+
                     <div className="text-center">
+
                       <div className="text-5xl font-extrabold text-[#15803D]/15 mb-3 font-mono">
                         {s.n}
                       </div>
+
                       <h4 className="font-bold text-gray-900 text-[15px] mb-2">
                         {s.t}
                       </h4>
+
                       <p className="text-gray-500 text-xs leading-relaxed">
                         {s.d}
                       </p>
+
                     </div>
+
                   </Reveal>
                 ))}
+
               </div>
+
             </div>
+
           </Reveal>
+
         </div>
       </section>
 
       <section className="py-16 bg-[#15803D]">
+
         <div className="max-w-4xl mx-auto px-4 text-center">
+
           <h2 className="text-2xl sm:text-3xl font-extrabold text-white mb-4">
             Stop Depending on NEPA
           </h2>
+
           <p className="text-green-100 text-sm mb-8">
             Get a free solar assessment for your home or business today.
           </p>
+
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
+
             <button
               onClick={() => nav("quote")}
               className="bg-white text-[#15803D] font-bold px-8 py-4 rounded-xl hover:bg-green-50 transition-colors"
             >
               Request Free Assessment
             </button>
+
             <a
               href={wa()}
               target="_blank"
               rel="noopener noreferrer"
               className="bg-white/5 border border-white/25 text-white font-semibold px-8 py-4 rounded-xl hover:bg-white/25 transition-colors flex items-center justify-center gap-2"
             >
-              <img src={whatsappIcon} alt="WhatsApp" className="w-8 h-6" /> Chat
-              on WhatsApp
+              <img
+                src={whatsappIcon}
+                alt="WhatsApp"
+                className="w-8 h-6"
+              />
+              Chat on WhatsApp
             </a>
+
           </div>
+
         </div>
       </section>
+
     </div>
   );
 }
 
 // ── CCTV PAGE ────────────────────────────────────────────────────────────────
+
 function CCTVPage({ nav }: { nav: (p: Page) => void }) {
   return (
     <div className="pt-16">
+
       <section className="bg-gray-900 py-20 px-4">
+
         <div className="max-w-4xl mx-auto text-center">
+
           <p className="text-[#4ADE80] font-semibold text-xs uppercase tracking-[0.14em] mb-4">
             CCTV Solutions
           </p>
+
           <h1 className="text-4xl sm:text-5xl font-extrabold text-white mb-4">
             Security You Can See
           </h1>
+
           <p className="text-gray-400 max-w-xl mx-auto text-sm">
             Professional CCTV installation for homes, shops, offices, and
             commercial properties across Nigeria.
           </p>
+
         </div>
+
       </section>
 
       <section className="py-20 bg-white">
+
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
+
             {[
               {
                 icon: Camera,
@@ -1299,35 +1677,51 @@ function CCTVPage({ nav }: { nav: (p: Page) => void }) {
                 desc: "Monitor your property live or review recordings from your phone — anywhere in the world, anytime.",
               },
             ].map((item, i) => (
-              <Reveal key={item.title} delay={i * 0.08}>
+              <Reveal
+                key={item.title}
+                delay={i * 0.08}
+              >
+
                 <div className="border border-gray-100 rounded-2xl p-7 text-center hover:shadow-md transition-all">
+
                   <div
                     className={`w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-5 ${item.color}`}
                   >
                     <item.icon className="w-7 h-7" />
                   </div>
+
                   <h3 className="text-lg font-bold text-gray-900 mb-3">
                     {item.title}
                   </h3>
+
                   <p className="text-gray-500 text-sm leading-relaxed">
                     {item.desc}
                   </p>
+
                 </div>
+
               </Reveal>
             ))}
+
           </div>
 
           <Reveal>
+
             <div className="bg-gray-50 rounded-2xl p-10 grid lg:grid-cols-2 gap-10 items-start">
+
               <div>
+
                 <h2 className="text-2xl font-extrabold text-gray-900 mb-4">
                   Who We Install For
                 </h2>
+
                 <p className="text-gray-500 text-sm mb-6">
                   We've installed CCTV systems for a wide range of properties
                   across Nnewi and surrounding states.
                 </p>
+
                 <ul className="space-y-3">
+
                   {[
                     "Homes & Residential Estates",
                     "Shops & Retail Stores",
@@ -1344,9 +1738,13 @@ function CCTVPage({ nav }: { nav: (p: Page) => void }) {
                       {item}
                     </li>
                   ))}
+
                 </ul>
+
               </div>
+
               <div className="space-y-4">
+
                 {[
                   {
                     t: "Homes & Properties",
@@ -1365,96 +1763,135 @@ function CCTVPage({ nav }: { nav: (p: Page) => void }) {
                     key={item.t}
                     className="bg-white rounded-xl p-5 border border-gray-100"
                   >
+
                     <h4 className="font-bold text-gray-900 text-[13px] mb-1">
                       {item.t}
                     </h4>
+
                     <p className="text-gray-500 text-xs leading-relaxed">
                       {item.d}
                     </p>
+
                   </div>
                 ))}
+
               </div>
+
             </div>
+
           </Reveal>
+
         </div>
       </section>
 
       <section className="py-16 bg-gray-900">
+
         <div className="max-w-4xl mx-auto px-4 text-center">
+
           <h2 className="text-2xl sm:text-3xl font-extrabold text-white mb-4">
             Secure Your Property Today
           </h2>
+
           <p className="text-gray-400 text-sm mb-8">
             Request a free site survey and CCTV installation quote.
           </p>
+
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
+
             <button
               onClick={() => nav("quote")}
               className="bg-[#15803D] text-white font-bold px-8 py-4 rounded-xl hover:bg-[#166534] transition-colors"
             >
               Get Free Quote
             </button>
+
             <a
               href={wa("I'd like to get a CCTV installation quote.")}
               target="_blank"
               rel="noopener noreferrer"
               className="bg-white/8 border border-white/15 text-white font-semibold px-6 py-3.5 rounded-xl hover:bg-white/14 transition-colors flex items-center justify-center gap-2"
             >
-              <img src={whatsappIcon} alt="WhatsApp" className="w-8 h-6" /> Chat
-              on WhatsApp
+              <img
+                src={whatsappIcon}
+                alt="WhatsApp"
+                className="w-8 h-6"
+              />
+              Chat on WhatsApp
             </a>
+
           </div>
+
         </div>
       </section>
+
     </div>
   );
 }
 
 // ── ABOUT PAGE ───────────────────────────────────────────────────────────────
-function AboutPage({ nav }: { nav: (p: Page) => void }) {
+
+function AboutPage() {
   return (
     <div className="pt-16">
+
       <section className="bg-[#0D1117] py-20 px-4">
+
         <div className="max-w-4xl mx-auto text-center">
+
           <p className="text-[#4ADE80] font-semibold text-xs uppercase tracking-[0.14em] mb-4">
             About Us
           </p>
+
           <h1 className="text-4xl sm:text-5xl font-extrabold text-white mb-4">
             We Solve Nigeria's Power Problem
           </h1>
+
           <p className="text-gray-400 max-w-2xl mx-auto text-sm">
             Gabito Energy Solution is a solar energy company based in Nnewi,
             Anambra State — serving customers across Nigeria and beyond.
           </p>
+
         </div>
+
       </section>
 
       <section className="py-20 bg-white">
+
         <div className="max-w-6xl mx-auto px-4 sm:px-6 grid lg:grid-cols-2 gap-16 items-start">
+
           <Reveal>
+
             <div>
+
               <h2 className="text-2xl font-extrabold text-gray-900 mb-5">
                 Our Mission
               </h2>
+
               <p className="text-gray-600 leading-relaxed mb-5 text-sm">
                 To make clean, reliable, and affordable solar energy accessible
                 to every Nigerian home and business — ending dependence on
                 generators and the unreliable public electricity supply.
               </p>
+
               <p className="text-gray-600 leading-relaxed mb-5 text-sm">
                 We understand that power in Nigeria isn't a luxury — it's a
                 business survival issue, a family safety issue, and a daily
                 frustration for millions of people. That's why we take our work
                 seriously.
               </p>
+
               <p className="text-gray-600 leading-relaxed text-sm">
                 Every installation we do is completed with precision, quality
                 components, and a genuine commitment to the customer's long-term
                 satisfaction — not just the day of installation.
               </p>
+
             </div>
+
           </Reveal>
+
           <div className="space-y-4">
+
             {[
               {
                 t: "Our Vision",
@@ -1469,24 +1906,37 @@ function AboutPage({ nav }: { nav: (p: Page) => void }) {
                 d: "We don't disappear after installation. Our team remains available for maintenance, upgrades, and technical support for the full lifetime of your system.",
               },
             ].map((item, i) => (
-              <Reveal key={item.t} delay={i * 0.1}>
+              <Reveal
+                key={item.t}
+                delay={i * 0.1}
+              >
+
                 <div className="bg-gray-50 rounded-xl p-6 border border-gray-100">
+
                   <h3 className="font-bold text-gray-900 mb-2 text-[15px]">
                     {item.t}
                   </h3>
+
                   <p className="text-gray-500 text-sm leading-relaxed">
                     {item.d}
                   </p>
+
                 </div>
+
               </Reveal>
             ))}
+
           </div>
+
         </div>
       </section>
 
       <section className="py-16 bg-[#F0FDF4]">
+
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
+
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 text-center">
+
             {[
               { v: "100+", l: "Installations" },
               { v: "300+", l: "Customers" },
@@ -1494,53 +1944,84 @@ function AboutPage({ nav }: { nav: (p: Page) => void }) {
               { v: "24/7", l: "Support" },
             ].map((s) => (
               <Reveal key={s.l}>
+
                 <div>
+
                   <div className="text-3xl font-extrabold text-[#15803D] mb-1">
                     {s.v}
                   </div>
-                  <div className="text-gray-600 text-sm font-medium">{s.l}</div>
+
+                  <div className="text-gray-600 text-sm font-medium">
+                    {s.l}
+                  </div>
+
                 </div>
+
               </Reveal>
             ))}
+
           </div>
+
         </div>
       </section>
 
       <section className="py-16 bg-white">
+
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
+
           <Reveal>
+
             <div className="bg-gray-900 rounded-2xl p-10 text-center">
+
               <MapPin className="w-8 h-8 text-[#4ADE80] mx-auto mb-4" />
+
               <h3 className="text-xl font-bold text-white mb-2">
                 Visit Our Store in Nnewi
               </h3>
-              <p className="text-gray-400 text-sm mb-6">{ADDRESS}</p>
+
+              <p className="text-gray-400 text-sm mb-6">
+                {ADDRESS}
+              </p>
+
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
+
                 <a
                   href={`tel:${PHONE1}`}
                   className="flex items-center justify-center gap-2 bg-[#15803D] text-white font-semibold px-6 py-3 rounded-xl hover:bg-[#166534] transition-colors"
                 >
-                  <Phone className="w-4 h-4" /> {PHONE1}
+                  <Phone className="w-4 h-4" />
+                  {PHONE1}
                 </a>
+
                 <a
                   href={wa()}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center justify-center gap-2 bg-white/8 border border-white/15 text-white font-semibold px-6 py-3 rounded-xl hover:bg-white/14 transition-colors"
                 >
-                  <img src={whatsappIcon} alt="WhatsApp" className="w-8 h-6" />{" "}
+                  <img
+                    src={whatsappIcon}
+                    alt="WhatsApp"
+                    className="w-8 h-6"
+                  />
                   WhatsApp
                 </a>
+
               </div>
+
             </div>
+
           </Reveal>
+
         </div>
       </section>
+
     </div>
   );
 }
 
 // ── FAQ PAGE ─────────────────────────────────────────────────────────────────
+
 function FAQPage() {
   const faqs = [
     {
@@ -1587,73 +2068,111 @@ function FAQPage() {
 
   return (
     <div className="pt-16">
+
       <section className="bg-gray-50 py-20 px-4 border-b border-gray-100">
+
         <div className="max-w-4xl mx-auto text-center">
+
           <p className="text-[#15803D] font-semibold text-xs uppercase tracking-[0.14em] mb-4">
             FAQ
           </p>
+
           <h1 className="text-4xl sm:text-5xl font-extrabold text-gray-900 mb-4">
             Questions & Answers
           </h1>
+
           <p className="text-gray-500 max-w-xl mx-auto text-sm">
             Everything you need to know about our solar and CCTV services.
           </p>
+
         </div>
+
       </section>
 
       <section className="py-16 bg-white">
+
         <div className="max-w-3xl mx-auto px-4 sm:px-6">
+
           <div className="space-y-3">
+
             {faqs.map((f, i) => (
-              <FAQItem key={i} q={f.q} a={f.a} />
+              <FAQItem
+                key={i}
+                q={f.q}
+                a={f.a}
+              />
             ))}
+
           </div>
+
         </div>
       </section>
+
     </div>
   );
 }
 
 // ── CONTACT PAGE ─────────────────────────────────────────────────────────────
+
 function ContactPage() {
-  const [form, setForm] = useState({ name: "", phone: "", message: "" });
+  const [form, setForm] = useState({
+    name: "",
+    phone: "",
+    message: "",
+  });
+
   const [sent, setSent] = useState(false);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
+
     window.open(
       wa(
         `Hello Gabito Energy Solution!\n\nName: ${form.name}\nPhone: ${form.phone}\n\nMessage: ${form.message}`,
       ),
       "_blank",
     );
+
     setSent(true);
   };
 
   return (
     <div className="pt-16">
+
       <section className="bg-[#0D1117] py-20 px-4">
+
         <div className="max-w-4xl mx-auto text-center">
+
           <p className="text-[#4ADE80] font-semibold text-xs uppercase tracking-[0.14em] mb-4">
             Contact
           </p>
+
           <h1 className="text-4xl sm:text-5xl font-extrabold text-white mb-4">
             Let's Talk Power
           </h1>
+
           <p className="text-gray-400 max-w-xl mx-auto text-sm">
             Reach us by phone, WhatsApp, or visit our store in Nnewi.
           </p>
+
         </div>
+
       </section>
 
       <section className="py-20 bg-white">
+
         <div className="max-w-6xl mx-auto px-4 sm:px-6 grid lg:grid-cols-2 gap-16">
+
           <Reveal>
+
             <div>
+
               <h2 className="text-2xl font-extrabold text-gray-900 mb-8">
                 Get In Touch
               </h2>
+
               <div className="space-y-6">
+
                 {[
                   {
                     icon: Phone,
@@ -1666,6 +2185,7 @@ function ContactPage() {
                         >
                           {PHONE1}
                         </a>
+
                         <a
                           href={`tel:${PHONE2}`}
                           className="block text-sm text-gray-600 hover:text-[#15803D]"
@@ -1712,6 +2232,7 @@ function ContactPage() {
                         <p className="text-gray-600 text-sm">
                           Mon–Sat: 8:00 AM – 6:00 PM
                         </p>
+
                         <p className="text-gray-500 text-sm">
                           Sunday: Emergency support only
                         </p>
@@ -1719,99 +2240,151 @@ function ContactPage() {
                     ),
                   },
                 ].map((item) => (
-                  <div key={item.label} className="flex gap-4">
+                  <div
+                    key={item.label}
+                    className="flex gap-4"
+                  >
+
                     <div className="w-11 h-11 bg-green-50 rounded-xl flex items-center justify-center shrink-0">
                       <item.icon className="w-5 h-5 text-[#15803D]" />
                     </div>
+
                     <div>
+
                       <p className="font-semibold text-gray-900 text-sm mb-1">
                         {item.label}
                       </p>
+
                       {item.content}
+
                     </div>
+
                   </div>
                 ))}
+
               </div>
+
             </div>
+
           </Reveal>
 
           <Reveal delay={0.15}>
+
             <div className="bg-gray-50 rounded-2xl p-8 border border-gray-100">
+
               <h3 className="text-xl font-bold text-gray-900 mb-6">
                 Send a Message
               </h3>
+
               {sent ? (
                 <div className="text-center py-10">
+
                   <CheckCircle className="w-12 h-12 text-[#15803D] mx-auto mb-4" />
-                  <p className="font-bold text-gray-900 mb-2">Message Sent!</p>
+
+                  <p className="font-bold text-gray-900 mb-2">
+                    Message Sent!
+                  </p>
+
                   <p className="text-gray-500 text-sm">
                     We'll respond on WhatsApp shortly.
                   </p>
+
                 </div>
               ) : (
-                <form onSubmit={submit} className="space-y-4">
+                <form
+                  onSubmit={submit}
+                  className="space-y-4"
+                >
+
                   <div>
+
                     <label className="block text-sm font-semibold text-gray-700 mb-1.5">
                       Full Name
                     </label>
+
                     <input
                       type="text"
                       required
                       value={form.name}
                       onChange={(e) =>
-                        setForm({ ...form, name: e.target.value })
+                        setForm({
+                          ...form,
+                          name: e.target.value,
+                        })
                       }
                       className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#15803D]/25 focus:border-[#15803D] bg-white"
                       placeholder="Your full name"
                     />
+
                   </div>
+
                   <div>
+
                     <label className="block text-sm font-semibold text-gray-700 mb-1.5">
                       Phone Number
                     </label>
+
                     <input
                       type="tel"
                       required
                       value={form.phone}
                       onChange={(e) =>
-                        setForm({ ...form, phone: e.target.value })
+                        setForm({
+                          ...form,
+                          phone: e.target.value,
+                        })
                       }
                       className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#15803D]/25 focus:border-[#15803D] bg-white"
                       placeholder="+234 XXX XXX XXXX"
                     />
+
                   </div>
+
                   <div>
+
                     <label className="block text-sm font-semibold text-gray-700 mb-1.5">
                       Message
                     </label>
+
                     <textarea
                       required
                       rows={4}
                       value={form.message}
                       onChange={(e) =>
-                        setForm({ ...form, message: e.target.value })
+                        setForm({
+                          ...form,
+                          message: e.target.value,
+                        })
                       }
                       className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#15803D]/25 focus:border-[#15803D] bg-white resize-none"
                       placeholder="How can we help you?"
                     />
+
                   </div>
+
                   <button
                     type="submit"
                     className="w-full bg-[#15803D] hover:bg-[#166534] text-white font-bold py-4 rounded-xl transition-colors"
                   >
                     Send via WhatsApp
                   </button>
+
                 </form>
               )}
+
             </div>
+
           </Reveal>
+
         </div>
       </section>
+
     </div>
   );
 }
 
 // ── QUOTE PAGE ───────────────────────────────────────────────────────────────
+
 function QuotePage() {
   const [form, setForm] = useState({
     name: "",
@@ -1822,7 +2395,9 @@ function QuotePage() {
     challenge: "",
     notes: "",
   });
+
   const [done, setDone] = useState(false);
+
   const set =
     (k: string) =>
     (
@@ -1830,52 +2405,77 @@ function QuotePage() {
         HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
       >,
     ) =>
-      setForm((f) => ({ ...f, [k]: e.target.value }));
+      setForm((f) => ({
+        ...f,
+        [k]: e.target.value,
+      }));
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
+
     const msg = `QUOTE REQUEST\n\nName: ${form.name}\nPhone: ${form.phone}\nLocation: ${form.location}\nProperty: ${form.property}\nService: ${form.service}\nChallenge: ${form.challenge}\nNotes: ${form.notes}`;
+
     window.open(wa(msg), "_blank");
+
     setDone(true);
   };
 
   return (
     <div className="pt-16 min-h-screen bg-gray-50">
+
       <section className="bg-[#15803D] py-16 px-4">
+
         <div className="max-w-3xl mx-auto text-center">
+
           <p className="text-green-200 font-semibold text-xs uppercase tracking-[0.14em] mb-4">
             Free Assessment
           </p>
+
           <h1 className="text-3xl sm:text-4xl font-extrabold text-white mb-3">
             Request Your Free Assessment
           </h1>
+
           <p className="text-green-100 text-sm">
             No obligation. No hidden costs. An honest recommendation for your
             situation.
           </p>
+
         </div>
+
       </section>
 
       <section className="py-16">
+
         <div className="max-w-2xl mx-auto px-4 sm:px-6">
+
           {done ? (
             <div className="bg-white rounded-2xl p-12 text-center shadow-sm border border-gray-100">
+
               <CheckCircle className="w-16 h-16 text-[#15803D] mx-auto mb-5" />
+
               <h2 className="text-2xl font-extrabold text-gray-900 mb-3">
                 Request Submitted!
               </h2>
+
               <p className="text-gray-500 text-sm">
                 Your quote request was sent via WhatsApp. Our team will contact
                 you within 24 hours to schedule your free site assessment.
               </p>
+
             </div>
           ) : (
             <form
               onSubmit={submit}
               className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 space-y-5"
             >
+
               {[
-                { k: "name", l: "Full Name", t: "text", ph: "Your full name" },
+                {
+                  k: "name",
+                  l: "Full Name",
+                  t: "text",
+                  ph: "Your full name",
+                },
                 {
                   k: "phone",
                   l: "Phone Number",
@@ -1890,9 +2490,11 @@ function QuotePage() {
                 },
               ].map((f) => (
                 <div key={f.k}>
+
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5">
                     {f.l}
                   </label>
+
                   <input
                     type={f.t}
                     required
@@ -1901,20 +2503,27 @@ function QuotePage() {
                     className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#15803D]/25 focus:border-[#15803D]"
                     placeholder={f.ph}
                   />
+
                 </div>
               ))}
 
               <div>
+
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5">
                   Property Type
                 </label>
+
                 <select
                   required
                   value={form.property}
                   onChange={set("property")}
                   className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#15803D]/25 focus:border-[#15803D] bg-white"
                 >
-                  <option value="">Select property type</option>
+
+                  <option value="">
+                    Select property type
+                  </option>
+
                   {[
                     "Home / Residence",
                     "Shop / Retail Store",
@@ -1927,20 +2536,28 @@ function QuotePage() {
                   ].map((o) => (
                     <option key={o}>{o}</option>
                   ))}
+
                 </select>
+
               </div>
 
               <div>
+
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5">
                   Service Needed
                 </label>
+
                 <select
                   required
                   value={form.service}
                   onChange={set("service")}
                   className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#15803D]/25 focus:border-[#15803D] bg-white"
                 >
-                  <option value="">Select service</option>
+
+                  <option value="">
+                    Select service
+                  </option>
+
                   {[
                     "Solar Installation",
                     "Inverter & Battery Only",
@@ -1952,19 +2569,27 @@ function QuotePage() {
                   ].map((o) => (
                     <option key={o}>{o}</option>
                   ))}
+
                 </select>
+
               </div>
 
               <div>
+
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5">
                   Biggest Electricity Challenge
                 </label>
+
                 <select
                   value={form.challenge}
                   onChange={set("challenge")}
                   className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#15803D]/25 focus:border-[#15803D] bg-white"
                 >
-                  <option value="">Select your main challenge</option>
+
+                  <option value="">
+                    Select your main challenge
+                  </option>
+
                   {[
                     "Less than 6 hours NEPA daily",
                     "No NEPA at all",
@@ -1975,14 +2600,20 @@ function QuotePage() {
                   ].map((o) => (
                     <option key={o}>{o}</option>
                   ))}
+
                 </select>
+
               </div>
 
               <div>
+
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5">
                   Additional Information{" "}
-                  <span className="font-normal text-gray-400">(optional)</span>
+                  <span className="font-normal text-gray-400">
+                    (optional)
+                  </span>
                 </label>
+
                 <textarea
                   rows={3}
                   value={form.notes}
@@ -1990,6 +2621,7 @@ function QuotePage() {
                   className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#15803D]/25 focus:border-[#15803D] resize-none"
                   placeholder="List your key appliances or anything else we should know..."
                 />
+
               </div>
 
               <button
@@ -1998,20 +2630,38 @@ function QuotePage() {
               >
                 Request Free Assessment →
               </button>
+
               <p className="text-center text-xs text-gray-400">
                 Opens WhatsApp with your details. We respond within 24 hours.
               </p>
+
             </form>
           )}
+
         </div>
       </section>
+
     </div>
   );
 }
 
 // ── FOOTER ───────────────────────────────────────────────────────────────────
+
+type SiteSettings = {
+  businessPhone: string;
+  whatsapp: string;
+  email: string;
+  address: string;
+  hours: string;
+  googleMaps: string;
+  facebook: string;
+  instagram: string;
+  linkedin: string;
+};
+
 function Footer({ nav }: { nav: (p: Page) => void }) {
-  const [settings, setSettings] = useState<SiteSettings | null>(null);
+  const [settings, setSettings] =
+    useState<SiteSettings | null>(null);
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -2022,7 +2672,10 @@ function Footer({ nav }: { nav: (p: Page) => void }) {
         .maybeSingle();
 
       if (error) {
-        console.error("Failed to load footer settings:", error);
+        console.error(
+          "Failed to load footer settings:",
+          error,
+        );
         return;
       }
 
@@ -2044,38 +2697,54 @@ function Footer({ nav }: { nav: (p: Page) => void }) {
     loadSettings();
   }, []);
 
-  // Use Supabase values, with the old values as fallback
-  const address = settings?.address || ADDRESS;
-  const phone = settings?.businessPhone || PHONE1;
-  const whatsapp = settings?.whatsapp || "";
+  const address =
+    settings?.address || ADDRESS;
+
+  const phone =
+    settings?.businessPhone || PHONE1;
+
+  const whatsapp =
+    settings?.whatsapp || "";
+
   const whatsappLink = whatsapp
     ? `https://wa.me/${whatsapp.replace(/\D/g, "")}`
     : wa();
 
   return (
     <footer className="bg-[#0D1117]">
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-16 pb-8">
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 pb-10 border-b border-white/[0.07]">
 
-          {/* Brand */}
+          {/* BRAND */}
+
           <div>
+
             <div className="flex items-center gap-2.5 mb-5">
+
               <div className="w-10 h-10 rounded-lg bg-[#15803D] py-0.5 overflow-hidden shadow-sm flex items-center justify-center">
+
                 <img
                   src={gabitoLogo}
                   alt="Gabito Energy Logo"
                   className="w-full h-full object-cover"
                 />
+
               </div>
 
               <div>
+
                 <div className="text-white font-bold text-sm">
                   Gabito Energy
                 </div>
+
                 <div className="text-[#4ADE80] text-[9px] tracking-[0.18em] uppercase font-semibold">
                   Solution
                 </div>
+
               </div>
+
             </div>
 
             <p className="text-[13px] leading-relaxed text-gray-500 mb-5">
@@ -2089,22 +2758,29 @@ function Footer({ nav }: { nav: (p: Page) => void }) {
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 bg-[#25D366]/15 text-[#25D366] text-[13px] font-semibold px-4 py-2 rounded-lg hover:bg-[#25D366]/25 transition-colors"
             >
+
               <img
                 src={whatsappIcon}
                 alt="WhatsApp"
                 className="w-8 h-6"
               />
+
               Chat on WhatsApp
+
             </a>
+
           </div>
 
-          {/* Services */}
+          {/* SERVICES */}
+
           <div>
+
             <h4 className="text-white font-semibold text-[13px] mb-4">
               Services
             </h4>
 
             <ul className="space-y-2.5">
+
               {[
                 ["Solar Installation", "solar"],
                 ["CCTV Solutions", "cctv"],
@@ -2113,24 +2789,31 @@ function Footer({ nav }: { nav: (p: Page) => void }) {
                 ["Maintenance & Support", "contact"],
               ].map(([l, p]) => (
                 <li key={l}>
+
                   <button
                     onClick={() => nav(p as Page)}
                     className="text-gray-500 hover:text-white text-[13px] transition-colors"
                   >
                     {l}
                   </button>
+
                 </li>
               ))}
+
             </ul>
+
           </div>
 
-          {/* Company */}
+          {/* COMPANY */}
+
           <div>
+
             <h4 className="text-white font-semibold text-[13px] mb-4">
               Company
             </h4>
 
             <ul className="space-y-2.5">
+
               {[
                 ["Home", "home"],
                 ["Projects", "projects"],
@@ -2139,39 +2822,47 @@ function Footer({ nav }: { nav: (p: Page) => void }) {
                 ["Get Free Quote", "quote"],
               ].map(([l, p]) => (
                 <li key={l}>
+
                   <button
                     onClick={() => nav(p as Page)}
                     className="text-gray-500 hover:text-white text-[13px] transition-colors"
                   >
                     {l}
                   </button>
+
                 </li>
               ))}
+
             </ul>
+
           </div>
 
-          {/* Contact */}
+          {/* CONTACT */}
+
           <div>
+
             <h4 className="text-white font-semibold text-[13px] mb-4">
               Contact
             </h4>
 
             <div className="space-y-3">
 
-              {/* Address */}
               <div className="flex gap-2.5">
+
                 <MapPin className="w-4 h-4 text-[#15803D] shrink-0 mt-0.5" />
 
                 <p className="text-gray-500 text-[13px] leading-relaxed">
                   {address}
                 </p>
+
               </div>
 
-              {/* Phone */}
               <div className="flex gap-2.5">
+
                 <Phone className="w-4 h-4 text-[#15803D] shrink-0" />
 
                 <div>
+
                   {phone && (
                     <a
                       href={`tel:${phone}`}
@@ -2180,64 +2871,234 @@ function Footer({ nav }: { nav: (p: Page) => void }) {
                       {phone}
                     </a>
                   )}
+
                 </div>
+
               </div>
 
             </div>
+
           </div>
+
         </div>
 
-        {/* Bottom */}
-        <div className="pt-6 flex flex-col sm:flex-row justify-between items-center gap-2 text-[12px] text-gray-600">
-          <p>
-            © {new Date().getFullYear()} Gabito Energy Solution. All rights
-            reserved.
-          </p>
+        <div className="pt-6 flex flex-col sm:flex-row justify-between items-center gap-3 text-[12px] text-gray-600">
+  <p>
+    © {new Date().getFullYear()} Gabito Energy Solution. All rights
+    reserved.
+  </p>
 
-          <p>
-            {address || "Nigeria"} · Nationwide Delivery
-          </p>
-        </div>
+  <div className="flex items-center gap-4">
+    <p>{address || "Nigeria"} · Nationwide Delivery</p>
+
+    <button
+  onClick={() => {
+    sessionStorage.removeItem("gabito_admin");
+    window.location.hash = "admin";
+  }}
+  className="text-gray-600 hover:text-gray-400 transition-colors text-[11px]"
+  title="Admin Dashboard"
+>
+  Admin
+</button>
+  </div>
+</div>
+
       </div>
+
     </footer>
   );
 }
 
+
+
+type StoreProduct = {
+  id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  image_url: string | null;
+  published: boolean;
+  updated_at: string;
+};
+
+function StorePage() {
+  const [products, setProducts] = useState<StoreProduct[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadProducts() {
+      const { data, error } = await supabase
+        .from("products")
+        .select("*")
+        .eq("published", true)
+        .order("updated_at", { ascending: false });
+
+      if (error) {
+        console.error("Failed to load store products:", error);
+      } else {
+        setProducts((data ?? []) as StoreProduct[]);
+      }
+
+      setLoading(false);
+    }
+
+    void loadProducts();
+  }, []);
+
+  return (
+    <section className="min-h-screen bg-white pt-24 pb-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+        <div className="mb-8">
+          <p className="text-sm font-semibold text-[#15803D] uppercase tracking-wider">
+            Gabito Energy Solution
+          </p>
+          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mt-2">
+            Our Store
+          </h1>
+          <p className="text-gray-600 mt-2">
+            Explore our available energy products.
+          </p>
+        </div>
+
+        {loading ? (
+          <p className="text-gray-500 py-10">Loading products...</p>
+        ) : products.length === 0 ? (
+          <p className="text-gray-500 py-10">
+            No products are available at the moment. Please check back soon.
+          </p>
+        ) : (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+            {products.map((product) => (
+              <article
+                key={product.id}
+                className="border border-gray-200 rounded-xl overflow-hidden bg-white"
+              >
+                <div className="aspect-square bg-gray-100">
+                  {product.image_url && (
+                    <img
+                      src={product.image_url}
+                      alt={product.name}
+                      loading="lazy"
+                      className="w-full h-full object-cover"
+                    />
+                  )}
+                </div>
+
+                <div className="p-3 sm:p-4">
+                  <h2 className="font-semibold text-gray-900 text-sm sm:text-base line-clamp-2">
+                    {product.name}
+                  </h2>
+
+                  <p className="text-[#15803D] font-bold mt-2">
+                    ₦{Number(product.price).toLocaleString("en-NG")}
+                  </p>
+
+                  <a
+                    href={`https://wa.me/2348109946212?text=${encodeURIComponent(
+                      `Hello Gabito Energy, I'm interested in ${product.name}, priced at ₦${Number(product.price).toLocaleString("en-NG")}.`
+                    )}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block text-center bg-[#15803D] hover:bg-[#166534] text-white rounded-lg py-2.5 px-2 mt-3 text-sm font-semibold"
+                  >
+                    Buy Now
+                  </a>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 // ── APP ──────────────────────────────────────────────────────────────────────
+
 export default function App() {
-  // All hooks must be declared before any conditional returns
-  const [isAdmin, setIsAdmin] = useState(() => window.location.hash.startsWith("#admin"));
+  const [isAdmin, setIsAdmin] = useState(() =>
+    window.location.hash.startsWith("#admin"),
+  );
+
   const [page, setPage] = useState<Page>("home");
 
   useEffect(() => {
-    const fn = () => setIsAdmin(window.location.hash.startsWith("#admin"));
-    window.addEventListener("hashchange", fn);
-    return () => window.removeEventListener("hashchange", fn);
-  }, []);
+    const fn = () =>
+      setIsAdmin(
+        window.location.hash.startsWith("#admin"),
+      );
 
+    window.addEventListener("hashchange", fn);
+
+    return () =>
+      window.removeEventListener("hashchange", fn);
+  }, []);
 
   const nav = (p: Page) => {
     setPage(p);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
   };
 
-  if (isAdmin) return <AdminApp />;
+  if (isAdmin) {
+    return <AdminApp />;
+  }
 
   return (
     <div className="min-h-screen">
-      <Header page={page} nav={nav} />
+
+      <Header
+        page={page}
+        nav={nav}
+      />
+
       <main>
-        {page === "home" && <HomePage nav={nav} />}
-        {page === "solar" && <SolarPage nav={nav} />}
-        {page === "cctv" && <CCTVPage nav={nav} />}
-        {page === "projects" && <ProjectsPage nav={nav} />}
-        {page === "about" && <AboutPage nav={nav} />}
-        {page === "faq" && <FAQPage />}
-        {page === "contact" && <ContactPage />}
-        {page === "quote" && <QuotePage />}
+
+        {page === "home" && (
+          <HomePage nav={nav} />
+        )}
+
+        {page === "solar" && (
+          <SolarPage nav={nav} />
+        )}
+
+        {page === "cctv" && (
+          <CCTVPage nav={nav} />
+        )}
+
+        {page === "projects" && (
+          <ProjectsPage nav={nav} />
+        )}
+
+        {page === "store" && <StorePage />}
+
+        {page === "about" && (
+          <AboutPage />
+        )}
+
+        {page === "faq" && (
+          <FAQPage />
+        )}
+
+        {page === "contact" && (
+          <ContactPage />
+        )}
+
+        {page === "quote" && (
+          <QuotePage />
+        )}
+
       </main>
+
       <Footer nav={nav} />
+
       <WAFab />
+
     </div>
   );
 }
+
